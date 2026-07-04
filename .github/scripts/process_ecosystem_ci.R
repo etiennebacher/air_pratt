@@ -1,17 +1,17 @@
-# Compares the formatting decisions of the reference Air binary and the current
-# project's binary across a set of repositories.
+# Summarizes the difference between the reference Air binary's formatted output
+# and the current project's, across a set of repositories.
 #
-# For each repo the workflow produces, for each tool ("air" = reference,
-# "current" = this project), two files:
-#   <repo>_<tool>_reformat.txt -> paths the tool would reformat
-#   <repo>_<tool>_failed.txt   -> paths the tool failed to parse/format
+# The workflow formats each repo with both tools in both orders (see the
+# workflow comment). For each repo it produces:
+#   <repo>_current_vs_air.diff  -> baseline Air, then current: where the current
+#                                  project changes Air's output
+#   <repo>_air_vs_current.diff  -> baseline current, then Air: where Air changes
+#                                  the current project's output
+#   <repo>_air_stderr.txt       -> Air's parse/format failures on the original
+#   <repo>_current_stderr.txt   -> the current project's failures on the original
 #
-# We report, per repo, the files where the two tools disagree:
-#   - reformat divergences: one tool would reformat a file, the other wouldn't
-#   - failure divergences:  one tool fails to process a file, the other doesn't
-#
-# `--check` only tells us *whether* a file would change, not *how*, so files
-# that both tools would reformat are not compared here.
+# Either diff being non-empty is a place the two formatters produce different
+# output for the same code -- something `--check` cannot reveal.
 
 repos_raw <- Sys.getenv("TEST_REPOS")
 repo_lines <- strsplit(repos_raw, "\n")[[1]]
@@ -42,33 +42,54 @@ for (line in repo_lines) {
   repo_categories <- c(repo_categories, current_category)
 }
 
-read_set <- function(path) {
+# Cap the diff shown per repo so a single large repo can't blow up the comment.
+MAX_DIFF_LINES <- 300
+OUT <- "ecosystem_comparison.md"
+
+read_lines0 <- function(path) {
   if (!file.exists(path)) {
     return(character(0))
   }
-  x <- trimws(readLines(path, warn = FALSE))
-  x[x != ""]
+  readLines(path, warn = FALSE)
 }
 
-# Builds a <pre> block of links to the given files under the repo/sha.
-file_links <- function(files, repo, sha) {
-  files <- head(files, 50)
+# Number of files touched by a `git diff` (each starts with a "diff --git"
+# header).
+count_diff_files <- function(diff_lines) {
+  sum(grepl("^diff --git ", diff_lines))
+}
+
+# Pull the file paths out of "Failed to format/read <path>: <err>" log lines.
+extract_failures <- function(path) {
+  lines <- read_lines0(path)
+  hit <- grepl("^Failed to (format|read) ", lines)
+  if (!any(hit)) {
+    return(character(0))
+  }
+  unique(sub("^Failed to (format|read) ([^:]+): .*$", "\\2", lines[hit]))
+}
+
+# Renders one direction's diff into a collapsible block, capped so a single
+# large repo can't blow up the comment. Returns "" when the diff is empty.
+render_diff <- function(diff_lines, heading) {
+  if (length(diff_lines) == 0) {
+    return("")
+  }
+  shown <- head(diff_lines, MAX_DIFF_LINES)
+  truncated <- length(diff_lines) > MAX_DIFF_LINES
   paste0(
-    "<a href=\"https://github.com/",
-    repo,
-    "/tree/",
-    sha,
-    "/",
-    files,
-    "\">",
-    files,
-    "</a>",
-    collapse = "\n"
+    heading,
+    if (truncated) paste0(" (first ", MAX_DIFF_LINES, " lines)") else "",
+    ":\n\n",
+    # A 4-backtick fence so the (rare) backtick in an R diff line can't close
+    # the block early.
+    "````diff\n",
+    paste(shown, collapse = "\n"),
+    "\n````\n\n"
   )
 }
 
-total_reformat_diffs <- 0
-total_failure_diffs <- 0
+total_repos_diff <- 0
 body <- character(0)
 last_printed_category <- NULL
 
@@ -80,35 +101,25 @@ for (i in seq_along(repo_names)) {
 
   message("Processing results of ", repo)
 
-  air_reformat <- read_set(paste0("results/", repo_dir, "_air_reformat.txt"))
-  cur_reformat <- read_set(paste0("results/", repo_dir, "_current_reformat.txt"))
-  air_failed <- read_set(paste0("results/", repo_dir, "_air_failed.txt"))
-  cur_failed <- read_set(paste0("results/", repo_dir, "_current_failed.txt"))
+  cur_vs_air <- read_lines0(paste0("results/", repo_dir, "_current_vs_air.diff"))
+  air_vs_cur <- read_lines0(paste0("results/", repo_dir, "_air_vs_current.diff"))
+  n_cur_vs_air <- count_diff_files(cur_vs_air)
+  n_air_vs_cur <- count_diff_files(air_vs_cur)
 
-  # Reformat decisions where the two tools disagree.
-  only_air_reformat <- setdiff(air_reformat, cur_reformat)
-  only_cur_reformat <- setdiff(cur_reformat, air_reformat)
+  # Failures each tool hits on the *original* source. A file the current project
+  # fails on but Air handled is a regression worth flagging.
+  air_fail <- extract_failures(paste0("results/", repo_dir, "_air_stderr.txt"))
+  cur_fail <- extract_failures(paste0("results/", repo_dir, "_current_stderr.txt"))
+  new_fail <- setdiff(cur_fail, air_fail)
 
-  # Files the current project fails on but Air handles are regressions; the
-  # reverse means the current project now handles a file Air can't.
-  new_failures <- setdiff(cur_failed, air_failed)
-  fixed_failures <- setdiff(air_failed, cur_failed)
-
-  n_diffs <- length(only_air_reformat) +
-    length(only_cur_reformat) +
-    length(new_failures) +
-    length(fixed_failures)
-
-  if (n_diffs == 0) {
+  has_diff <- length(cur_vs_air) > 0 || length(air_vs_cur) > 0
+  if (!has_diff && length(new_fail) == 0) {
     next
   }
 
-  total_reformat_diffs <- total_reformat_diffs +
-    length(only_air_reformat) +
-    length(only_cur_reformat)
-  total_failure_diffs <- total_failure_diffs +
-    length(new_failures) +
-    length(fixed_failures)
+  if (has_diff) {
+    total_repos_diff <- total_repos_diff + 1
+  }
 
   # Add a category subheader the first time a repo with changes shows up in
   # that category.
@@ -117,12 +128,21 @@ for (i in seq_along(repo_names)) {
     last_printed_category <- category
   }
 
-  summary_line <- paste0(
-    "reformat Δ ",
-    length(only_air_reformat) + length(only_cur_reformat),
-    ", failure Δ ",
-    length(new_failures) + length(fixed_failures)
+  summary <- paste0(
+    "current→Air ",
+    n_air_vs_cur,
+    " file(s), Air→current ",
+    n_cur_vs_air,
+    " file(s) differ"
   )
+  if (length(new_fail) > 0) {
+    summary <- paste0(
+      summary,
+      ", ",
+      length(new_fail),
+      " new parse/format failure(s)"
+    )
+  }
 
   section <- paste0(
     "<details><summary><a href=\"https://github.com/",
@@ -132,79 +152,54 @@ for (i in seq_along(repo_names)) {
     "\">",
     repo,
     "</a>: ",
-    summary_line,
+    summary,
     "</summary>\n\n"
   )
 
-  if (length(only_cur_reformat) > 0) {
+  if (length(new_fail) > 0) {
     section <- paste0(
       section,
-      "Current project would reformat, Air would not (first 50):<pre>",
-      file_links(only_cur_reformat, repo, sha),
-      "</pre>\n\n"
-    )
-  }
-  if (length(only_air_reformat) > 0) {
-    section <- paste0(
-      section,
-      "Air would reformat, current project would not (first 50):<pre>",
-      file_links(only_air_reformat, repo, sha),
-      "</pre>\n\n"
-    )
-  }
-  if (length(new_failures) > 0) {
-    section <- paste0(
-      section,
-      "Current project fails to parse/format, Air succeeds (first 50):<pre>",
-      file_links(new_failures, repo, sha),
-      "</pre>\n\n"
-    )
-  }
-  if (length(fixed_failures) > 0) {
-    section <- paste0(
-      section,
-      "Air fails to parse/format, current project succeeds (first 50):<pre>",
-      file_links(fixed_failures, repo, sha),
-      "</pre>\n\n"
+      "The current project fails to parse/format these files that Air handled ",
+      "(first 50):\n\n",
+      paste0("- `", head(new_fail, 50), "`", collapse = "\n"),
+      "\n\n"
     )
   }
 
-  section <- paste0(section, "</details>\n\n")
+  section <- paste0(
+    section,
+    render_diff(cur_vs_air, "Current project applied on top of Air's output"),
+    render_diff(air_vs_cur, "Air applied on top of the current project's output"),
+    "</details>\n\n"
+  )
   body <- c(body, section)
 }
 
-cat("# Ecosystem results\n\n", file = "ecosystem_comparison.md")
+cat("# Ecosystem results\n\n", file = OUT)
 cat(
-  "Comparison of `air format --check .` between reference Air (latest release)\n",
-  "and the current project. `--check` only reports whether a file would be\n",
-  "reformatted, so files that *both* tools would reformat are not compared at\n",
-  "the output level.\n\n",
+  "Each repository is formatted by reference Air (latest release) and the ",
+  "current project in both orders; a diff below is where one tool changes the ",
+  "other's output.\n\n",
   sep = "",
-  file = "ecosystem_comparison.md",
+  file = OUT,
   append = TRUE
 )
 
 if (length(body) == 0) {
   cat(
-    "✅ No divergences: both tools would reformat the same files and neither ",
-    "introduces new parse/format failures.\n",
+    "✅ The current project produced byte-for-byte identical output to Air ",
+    "on every repository, and introduced no new parse/format failures.\n",
     sep = "",
-    file = "ecosystem_comparison.md",
+    file = OUT,
     append = TRUE
   )
 } else {
   cat(
-    total_reformat_diffs,
-    " divergent reformat decisions, ",
-    total_failure_diffs,
-    " divergent parse/format failures\n\n",
+    total_repos_diff,
+    " repositories formatted differently\n\n",
     sep = "",
-    file = "ecosystem_comparison.md",
+    file = OUT,
     append = TRUE
   )
-  cat(
-    paste(body, collapse = ""),
-    file = "ecosystem_comparison.md",
-    append = TRUE
-  )
+  cat(paste(body, collapse = ""), file = OUT, append = TRUE)
 }
