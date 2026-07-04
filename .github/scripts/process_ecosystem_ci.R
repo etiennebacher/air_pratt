@@ -175,9 +175,8 @@ for (i in seq_along(repo_names)) {
 
 cat("# Ecosystem results\n\n", file = "ecosystem_comparison.md")
 cat(
-  "Comparison of `air format --check .` between reference Air (",
-  Sys.getenv("AIR_VERSION"),
-  ") and the current project. `--check` only reports whether a file would be\n",
+  "Comparison of `air format --check .` between reference Air (latest release)\n",
+  "and the current project. `--check` only reports whether a file would be\n",
   "reformatted, so files that *both* tools would reformat are not compared at\n",
   "the output level.\n\n",
   sep = "",

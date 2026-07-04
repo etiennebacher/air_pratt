@@ -15,9 +15,8 @@ all_repos <- setNames(
 
 cat("### Benchmark on real projects\n\n", file = "benchmark.md")
 cat(
-  "Run time of `air format --check .` on each repository: reference Air (",
-  Sys.getenv("AIR_VERSION"),
-  ") vs. the current project.\n\n",
+  "Run time of `air format --check .` on each repository: reference Air ",
+  "(latest release) vs. the current project.\n\n",
   sep = "",
   file = "benchmark.md",
   append = TRUE

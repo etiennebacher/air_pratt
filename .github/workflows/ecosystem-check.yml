@@ -92,11 +92,12 @@ jobs:
       - name: Download reference Air binary
         run: |
           url="https://github.com/posit-dev/air/releases/latest/download/air-x86_64-unknown-linux-gnu.tar.gz"
-          echo "Downloading reference Air ${AIR_VERSION} from ${url}"
+          echo "Downloading reference Air (latest release) from ${url}"
           curl --proto '=https' --tlsv1.2 -LsSf "$url" -o air-ref.tar.gz
           mkdir -p air-ref
           tar -xzf air-ref.tar.gz -C air-ref
-          bin=$(find air-ref -type f -name air | head -n1)
+          # Absolute path: this binary is invoked after `cd`-ing into each repo.
+          bin=$(find "$PWD/air-ref" -type f -name air | head -n1)
           chmod +x "$bin"
           echo "AIR_REF_BIN=$bin" >> $GITHUB_ENV
           "$bin" --version
