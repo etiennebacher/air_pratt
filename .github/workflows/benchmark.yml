@@ -9,13 +9,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - .github/workflows/benchmark.yml
-      - .github/scripts/process_bench_ci.R
-      - Cargo.toml
-      - Cargo.lock
-      - crates/**/src/**
-      - crates/**/Cargo.toml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
