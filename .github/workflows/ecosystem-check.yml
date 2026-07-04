@@ -1,11 +1,17 @@
-# Compares the formatting decisions of the reference Air binary against the
-# current project's binary across a set of real-world R repositories. Both tools
-# are run with `format --check` so they never modify files; we compare the set
-# of files each would reformat (and any files each fails to parse/format).
+# Compares the formatted *output* of the reference Air binary against the
+# current project's binary across a set of real-world R repositories. This
+# compares formatting byte-for-byte, unlike `--check`, which only reports
+# *whether* a file would change, not *how*.
 #
-# Note: `--check` only reports *whether* a file would change, not *how*. Files
-# that both tools would reformat are therefore not compared at the output level;
-# this surfaces divergent reformat decisions and parse/format regressions.
+# We test both directions for each repo:
+#   1. format with Air, stage it, format with the current project -> the
+#      unstaged diff is where the current project changes Air's output.
+#   2. format with the current project, stage it, format with Air -> the
+#      unstaged diff is where Air changes the current project's output.
+# Testing both ways catches a divergence even when one formatter's
+# whitespace-persistence heuristic makes it preserve the other's already-applied
+# choice; the only case both miss is when both tools accept both formattings,
+# which isn't a meaningful divergence.
 #
 # Results are published by "ecosystem-check-comment.yml" (see the comment in
 # that file for why this is split into two workflows).
@@ -120,7 +126,7 @@ jobs:
             git clone --revision=$commit_sha --depth 1 https://github.com/$repo_name.git $repo_dir
           done
 
-      - name: Run both formatters on all repos
+      - name: Format with both tools in each order and diff the output
         run: |
           mkdir -p results
           cd test-repos
@@ -134,26 +140,43 @@ jobs:
             repo_name=$(echo "$repo" | cut -d'@' -f1)
             repo_dir=$(echo "$repo_name" | tr '/' '_')
 
-            for tool in air current; do
-              case "$tool" in
-                air) bin="$AIR_REF_BIN" ;;
-                current) bin="$AIR_CUR_BIN" ;;
-              esac
+            echo "::group::${repo_name}"
+            (
+              cd "$repo_dir"
+              res="../../results/${repo_dir}"
 
-              # `format --check` writes "Would reformat: <path>" for files that
-              # would change and "Failed to format/read <path>: <err>" for
-              # files it can't process. It never modifies files. Capture both
-              # streams, then split the two kinds of lines into separate lists.
-              out=$(cd "$repo_dir" && "$bin" format --check . 2>&1 || true)
-              printf '%s\n' "$out" | sed -n 's/^Would reformat: //p' | sort -u > "../results/${repo_dir}_${tool}_reformat.txt"
-              printf '%s\n' "$out" | sed -n -E 's/^Failed to (format|read) ([^:]+): .*/\2/p' | sort -u > "../results/${repo_dir}_${tool}_failed.txt"
-            done
+              # We compare the two formatters' output in both directions. We
+              # never commit, so HEAD stays at the original checkout and
+              # `git reset --hard` always restores the pristine source between
+              # passes. `format` (no --check) rewrites files in place.
+
+              # Direction 1: format with Air (on the original source), stage it
+              # as the baseline, then format with the current project on top.
+              # The unstaged diff is where the current project changes Air's
+              # output.
+              "$AIR_REF_BIN" format . 2> "${res}_air_stderr.txt" || true
+              git add -A
+              "$AIR_CUR_BIN" format . 2> "${res}_current_on_air_stderr.txt" || true
+              git --no-pager diff --no-color > "${res}_current_vs_air.diff"
+
+              # Back to the pristine source.
+              git reset --hard -q
+
+              # Direction 2: the mirror image -- format with the current project
+              # (on the original source), stage it, then format with Air. The
+              # unstaged diff is where Air changes the current project's output.
+              "$AIR_CUR_BIN" format . 2> "${res}_current_stderr.txt" || true
+              git add -A
+              "$AIR_REF_BIN" format . 2> "${res}_air_on_current_stderr.txt" || true
+              git --no-pager diff --no-color > "${res}_air_vs_current.diff"
+            )
+            echo "::endgroup::"
           done
 
-      - name: Upload all result lists
+      - name: Upload all diffs and logs
         uses: actions/upload-artifact@v7
         with:
-          name: ecosystem-file-lists
+          name: ecosystem-diffs
           path: results/
 
       - name: Process ecosystem results
