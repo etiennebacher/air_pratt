@@ -1,17 +1,16 @@
 # Summarizes the difference between the reference Air binary's formatted output
 # and the current project's, across a set of repositories.
 #
-# The workflow formats each repo with both tools in both orders (see the
-# workflow comment). For each repo it produces:
-#   <repo>_current_vs_air.diff  -> baseline Air, then current: where the current
-#                                  project changes Air's output
-#   <repo>_air_vs_current.diff  -> baseline current, then Air: where Air changes
-#                                  the current project's output
-#   <repo>_air_stderr.txt       -> Air's parse/format failures on the original
-#   <repo>_current_stderr.txt   -> the current project's failures on the original
+# The workflow formats the original source of each repo with each tool
+# independently and diffs the two results (see the workflow comment for why we
+# never run one tool on the other's output). For each repo it produces:
+#   <repo>.diff               -> `git diff` of Air's output vs the current
+#                                project's (empty == identical output)
+#   <repo>_air_stderr.txt     -> Air's parse/format failures
+#   <repo>_current_stderr.txt -> the current project's parse/format failures
 #
-# Either diff being non-empty is a place the two formatters produce different
-# output for the same code -- something `--check` cannot reveal.
+# A non-empty diff is a place the two formatters produce different output for
+# the same code -- something `--check` cannot reveal.
 
 repos_raw <- Sys.getenv("TEST_REPOS")
 repo_lines <- strsplit(repos_raw, "\n")[[1]]
@@ -53,12 +52,6 @@ read_lines0 <- function(path) {
   readLines(path, warn = FALSE)
 }
 
-# Number of files touched by a `git diff` (each starts with a "diff --git"
-# header).
-count_diff_files <- function(diff_lines) {
-  sum(grepl("^diff --git ", diff_lines))
-}
-
 # Pull the file paths out of "Failed to format/read <path>: <err>" log lines.
 extract_failures <- function(path) {
   lines <- read_lines0(path)
@@ -69,27 +62,8 @@ extract_failures <- function(path) {
   unique(sub("^Failed to (format|read) ([^:]+): .*$", "\\2", lines[hit]))
 }
 
-# Renders one direction's diff into a collapsible block, capped so a single
-# large repo can't blow up the comment. Returns "" when the diff is empty.
-render_diff <- function(diff_lines, heading) {
-  if (length(diff_lines) == 0) {
-    return("")
-  }
-  shown <- head(diff_lines, MAX_DIFF_LINES)
-  truncated <- length(diff_lines) > MAX_DIFF_LINES
-  paste0(
-    heading,
-    if (truncated) paste0(" (first ", MAX_DIFF_LINES, " lines)") else "",
-    ":\n\n",
-    # A 4-backtick fence so the (rare) backtick in an R diff line can't close
-    # the block early.
-    "````diff\n",
-    paste(shown, collapse = "\n"),
-    "\n````\n\n"
-  )
-}
-
 total_repos_diff <- 0
+total_files_diff <- 0
 body <- character(0)
 last_printed_category <- NULL
 
@@ -101,24 +75,23 @@ for (i in seq_along(repo_names)) {
 
   message("Processing results of ", repo)
 
-  cur_vs_air <- read_lines0(paste0("results/", repo_dir, "_current_vs_air.diff"))
-  air_vs_cur <- read_lines0(paste0("results/", repo_dir, "_air_vs_current.diff"))
-  n_cur_vs_air <- count_diff_files(cur_vs_air)
-  n_air_vs_cur <- count_diff_files(air_vs_cur)
+  diff_lines <- read_lines0(paste0("results/", repo_dir, ".diff"))
+  # Each changed file starts with a "diff --git a/... b/..." header.
+  changed_files <- sum(grepl("^diff --git ", diff_lines))
 
-  # Failures each tool hits on the *original* source. A file the current project
-  # fails on but Air handled is a regression worth flagging.
   air_fail <- extract_failures(paste0("results/", repo_dir, "_air_stderr.txt"))
   cur_fail <- extract_failures(paste0("results/", repo_dir, "_current_stderr.txt"))
+  # Files the current project fails on but Air handled -> regressions worth
+  # flagging (a failed file leaves no diff, so it wouldn't show up otherwise).
   new_fail <- setdiff(cur_fail, air_fail)
 
-  has_diff <- length(cur_vs_air) > 0 || length(air_vs_cur) > 0
-  if (!has_diff && length(new_fail) == 0) {
+  if (length(diff_lines) == 0 && length(new_fail) == 0) {
     next
   }
 
-  if (has_diff) {
+  if (length(diff_lines) > 0) {
     total_repos_diff <- total_repos_diff + 1
+    total_files_diff <- total_files_diff + changed_files
   }
 
   # Add a category subheader the first time a repo with changes shows up in
@@ -128,13 +101,7 @@ for (i in seq_along(repo_names)) {
     last_printed_category <- category
   }
 
-  summary <- paste0(
-    "current→Air ",
-    n_air_vs_cur,
-    " file(s), Air→current ",
-    n_cur_vs_air,
-    " file(s) differ"
-  )
+  summary <- paste0(changed_files, " file(s) formatted differently")
   if (length(new_fail) > 0) {
     summary <- paste0(
       summary,
@@ -166,20 +133,31 @@ for (i in seq_along(repo_names)) {
     )
   }
 
-  section <- paste0(
-    section,
-    render_diff(cur_vs_air, "Current project applied on top of Air's output"),
-    render_diff(air_vs_cur, "Air applied on top of the current project's output"),
-    "</details>\n\n"
-  )
+  if (length(diff_lines) > 0) {
+    shown <- head(diff_lines, MAX_DIFF_LINES)
+    truncated <- length(diff_lines) > MAX_DIFF_LINES
+    # A 4-backtick fence so the (rare) backtick in an R diff line can't close
+    # the block early. The diff is Air's output (a/) vs the current project's
+    # (b/), so `-` lines are Air and `+` lines are the current project.
+    section <- paste0(
+      section,
+      "Diff of Air's output (`-`) vs the current project's (`+`)",
+      if (truncated) paste0(" (first ", MAX_DIFF_LINES, " lines)") else "",
+      ":\n\n````diff\n",
+      paste(shown, collapse = "\n"),
+      "\n````\n\n"
+    )
+  }
+
+  section <- paste0(section, "</details>\n\n")
   body <- c(body, section)
 }
 
 cat("# Ecosystem results\n\n", file = OUT)
 cat(
-  "Each repository is formatted by reference Air (latest release) and the ",
-  "current project in both orders; a diff below is where one tool changes the ",
-  "other's output.\n\n",
+  "The original source of each repository is formatted by reference Air (latest ",
+  "release) and by the current project independently; a diff below is where ",
+  "their output differs.\n\n",
   sep = "",
   file = OUT,
   append = TRUE
@@ -195,6 +173,8 @@ if (length(body) == 0) {
   )
 } else {
   cat(
+    total_files_diff,
+    " file(s) across ",
     total_repos_diff,
     " repositories formatted differently\n\n",
     sep = "",

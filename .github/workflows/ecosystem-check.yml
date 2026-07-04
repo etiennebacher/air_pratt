@@ -3,15 +3,11 @@
 # compares formatting byte-for-byte, unlike `--check`, which only reports
 # *whether* a file would change, not *how*.
 #
-# We test both directions for each repo:
-#   1. format with Air, stage it, format with the current project -> the
-#      unstaged diff is where the current project changes Air's output.
-#   2. format with the current project, stage it, format with Air -> the
-#      unstaged diff is where Air changes the current project's output.
-# Testing both ways catches a divergence even when one formatter's
-# whitespace-persistence heuristic makes it preserve the other's already-applied
-# choice; the only case both miss is when both tools accept both formattings,
-# which isn't a meaningful divergence.
+# For each repo we format the *original* source with each tool independently
+# (on its own commit) and diff the two results. We deliberately never run one
+# tool on the other's output: both formatters share some non-idempotent edge
+# cases (formatting their own output can change it), so feeding one tool's
+# output to the other would report that shared quirk as a false divergence.
 #
 # Results are published by "ecosystem-check-comment.yml" (see the comment in
 # that file for why this is split into two workflows).
@@ -126,7 +122,7 @@ jobs:
             git clone --revision=$commit_sha --depth 1 https://github.com/$repo_name.git $repo_dir
           done
 
-      - name: Format with both tools in each order and diff the output
+      - name: Format each repo with both tools and diff the output
         run: |
           mkdir -p results
           cd test-repos
@@ -144,31 +140,24 @@ jobs:
             (
               cd "$repo_dir"
               res="../../results/${repo_dir}"
+              orig=$(git rev-parse HEAD)
 
-              # We compare the two formatters' output in both directions. We
-              # never commit, so HEAD stays at the original checkout and
-              # `git reset --hard` always restores the pristine source between
-              # passes. `format` (no --check) rewrites files in place.
-
-              # Direction 1: format with Air (on the original source), stage it
-              # as the baseline, then format with the current project on top.
-              # The unstaged diff is where the current project changes Air's
-              # output.
+              # Format the original source with reference Air and commit the
+              # result. `format` (no --check) rewrites files in place;
+              # --allow-empty keeps this deterministic when nothing changed.
               "$AIR_REF_BIN" format . 2> "${res}_air_stderr.txt" || true
-              git add -A
-              "$AIR_CUR_BIN" format . 2> "${res}_current_on_air_stderr.txt" || true
-              git --no-pager diff --no-color > "${res}_current_vs_air.diff"
+              git -c user.email=ci@local -c user.name=ci commit -aqm air --allow-empty
+              air_ref=$(git rev-parse HEAD)
 
-              # Back to the pristine source.
-              git reset --hard -q
-
-              # Direction 2: the mirror image -- format with the current project
-              # (on the original source), stage it, then format with Air. The
-              # unstaged diff is where Air changes the current project's output.
+              # Reset to the pristine source, then do the same with the current
+              # project. Each tool thus formats the ORIGINAL, never the other's
+              # output.
+              git reset --hard -q "$orig"
               "$AIR_CUR_BIN" format . 2> "${res}_current_stderr.txt" || true
-              git add -A
-              "$AIR_REF_BIN" format . 2> "${res}_air_on_current_stderr.txt" || true
-              git --no-pager diff --no-color > "${res}_air_vs_current.diff"
+              git -c user.email=ci@local -c user.name=ci commit -aqm current --allow-empty
+
+              # Diff Air's output against the current project's.
+              git --no-pager diff --no-color "$air_ref" HEAD > "${res}.diff"
             )
             echo "::endgroup::"
           done
