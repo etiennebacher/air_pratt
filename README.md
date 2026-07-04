@@ -1,6 +1,6 @@
 This is a fork of [Air](github.com/posit-dev/air), an R formatter.
 
-The objective of this fork is to rewrite the tree-sitter parsing infrastructure by a dedicated Pratt parser. This would have two benefits:
+The objective of this fork is to replace the tree-sitter parsing infrastructure by a dedicated Pratt parser. This would have two benefits:
 
 - better performance
 - ability to parse valid R code and ignore invalid R code instead of skipping entire files as soon as they contain syntax errors.
