@@ -5,10 +5,18 @@
 //! The old tree-sitter backend crashed outright on the flat 200k binary
 //! chain below; these tests pin the new parser's robustness.
 //!
-//! Everything runs on a thread with a large fixed stack because *dropping* a
-//! very deep syntax tree still recurses per level inside biome_rowan — a
-//! pre-existing limitation shared with the old backend that consumers hit
-//! long after parsing succeeded, and one we can't fix from here.
+//! Parsing is therefore safe at any depth. *Dropping* a very deep syntax tree
+//! is not: biome_rowan recurses per level with no such stack growth — a
+//! pre-existing limitation shared with the old backend that consumers hit long
+//! after parsing succeeded, and one we can't fix from here. That recursive drop
+//! is what actually overflows the stack, and 64 MiB was only ever enough to
+//! absorb it on Linux/macOS: the MSVC build's larger per-level frames overflow
+//! it on Windows.
+//!
+//! Since these tests only exercise the *parser*, we `mem::forget` the parse
+//! result rather than drop it, so tree depth no longer has to fit the drop
+//! recursion on any platform. Each case still runs on a thread with a large
+//! fixed stack to cover parsing itself.
 
 use air_r_parser::RParserOptions;
 use air_r_parser::parse;
@@ -21,6 +29,9 @@ fn assert_parses(name: &'static str, text: String, expect_error: bool) {
         .spawn(move || {
             let parsed = parse(&text, RParserOptions::default());
             assert_eq!(parsed.has_error(), expect_error, "case {name}");
+            // Skip the recursive drop of the deep tree; the OS reclaims it when
+            // the thread exits. See the module docs.
+            std::mem::forget(parsed);
         })
         .unwrap()
         .join()
