@@ -1,0 +1,14 @@
+---
+source: crates/air_r_parser/src/parse.rs
+expression: "format!(\"{:#?}\", parsed.syntax())"
+---
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_BINARY_EXPRESSION@0..3
+      0: R_DOUBLE_VALUE@0..1
+        0: R_DOUBLE_LITERAL@0..1 "1" [] []
+      1: PLUS@1..2 "+" [] []
+      2: R_DOUBLE_VALUE@2..3
+        0: R_DOUBLE_LITERAL@2..3 "1" [] []
+  2: EOF@3..3 "" [] []

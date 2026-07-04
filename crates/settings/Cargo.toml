@@ -1,0 +1,36 @@
+[package]
+name = "settings"
+version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+description = "Source of truth for Air settings"
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[dependencies]
+biome_formatter = { workspace = true, optional = true }
+schemars = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+biome_formatter = { workspace = true }
+insta = { workspace = true }
+serde = { workspace = true }
+# Self dependency to activate optional features for tests.
+# `cargo shear` will try and incorrectly remove this.
+settings = { features = ["biome", "serde"], path = "./" }
+toml = { workspace = true }
+
+[features]
+biome = ["dep:biome_formatter"]
+default = []
+schemars = ["dep:schemars"]
+serde = ["dep:serde"]
+
+[lints]
+workspace = true

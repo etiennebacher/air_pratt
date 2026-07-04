@@ -1,0 +1,15 @@
+---
+source: crates/air_r_parser/src/parse.rs
+expression: "format!(\"{:#?}\", parsed.syntax())"
+---
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_CALL@0..4
+      0: R_IDENTIFIER@0..2
+        0: IDENT@0..2 "fn" [] []
+      1: R_CALL_ARGUMENTS@2..4
+        0: L_PAREN@2..3 "(" [] []
+        1: R_ARGUMENT_LIST@3..3
+        2: R_PAREN@3..4 ")" [] []
+  2: EOF@4..4 "" [] []

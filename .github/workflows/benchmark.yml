@@ -1,0 +1,150 @@
+# Compares the run time of the reference Air binary against the current
+# project's binary on a set of real-world R repositories. Results are published
+# by "benchmark-comment.yml" (see the comment in that file for why this is
+# split into two workflows).
+
+name: Benchmark
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/benchmark.yml
+      - .github/scripts/process_bench_ci.R
+      - Cargo.toml
+      - Cargo.lock
+      - crates/**/src/**
+      - crates/**/Cargo.toml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  # Disable ANSI colors so the CLI output can be parsed and compared reliably.
+  NO_COLOR: "1"
+  # Same repositories as ecosystem-check for consistency.
+  TEST_REPOS: |
+    easystats/datawizard@7466ff6f91040e25f826b224a4ef5e9aeb63b567
+    lrberge/stringmagic@87b187d40c745ea1d8496f071aee7229985da23c
+    pola-rs/r-polars@055f891d977d6a8004fe8ab1bb5d47cfdd44872a
+    Rdatatable/data.table@d7833cb3a0c36ab329fcfe5cc1523449663f898f
+    ropensci/targets@d45243e1a239da467c6e96e0069ecb7368f78021
+    rstudio/shiny@b6e9e9d216cd574cf8985d23772399f51ee4a4ac
+    tidyverse/dplyr@384ff2c4af79a9bd9142d8bdab23efbcd52f275b
+    tidyverse/ggplot2@bed8e32d45c7dc98afb783b409edac98854d41a7
+    vincentarelbundock/marginaleffects@ffe5a4f5962a9ba51c3e68e1c55eea62887c25da
+    wch/r-source@b5cf23a805f4305852f55c4148f2a302b06844b5
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install hyperfine
+        run: sudo apt install hyperfine
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: benchmark-pr
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1.16.1
+
+      - name: Set up R to process results
+        uses: r-lib/actions/setup-r@v2.12.0
+        with:
+          use-public-rspm: true
+
+      - name: Setup Pandoc
+        uses: r-lib/actions/setup-pandoc@v2.12.0
+
+      - name: Install packages to process results
+        run: |
+          R -e "install.packages(c('data.table', 'jsonlite', 'pandoc', 'tinytable'))"
+
+      - name: Build current project binary
+        run: |
+          cargo build --release --package air
+          cp target/release/air target/release/air-current
+          echo "AIR_CUR_BIN=$(pwd)/target/release/air-current" >> $GITHUB_ENV
+
+      - name: Download reference Air binary
+        run: |
+          url="https://github.com/posit-dev/air/releases/latest/download/air-x86_64-unknown-linux-gnu.tar.gz"
+          echo "Downloading reference Air ${AIR_VERSION} from ${url}"
+          curl --proto '=https' --tlsv1.2 -LsSf "$url" -o air-ref.tar.gz
+          mkdir -p air-ref
+          tar -xzf air-ref.tar.gz -C air-ref
+          bin=$(find air-ref -type f -name air | head -n1)
+          chmod +x "$bin"
+          echo "AIR_REF_BIN=$bin" >> $GITHUB_ENV
+          "$bin" --version
+
+      - name: Clone all test repos
+        run: |
+          mkdir -p test-repos
+          cd test-repos
+          for repo in $TEST_REPOS; do
+            repo_name=$(echo "$repo" | cut -d'@' -f1)
+            commit_sha=$(echo "$repo" | cut -d'@' -f2)
+            repo_dir=$(echo "$repo_name" | tr '/' '_')
+
+            echo "Cloning $repo_name at $commit_sha..."
+            git clone --depth 1 https://github.com/$repo_name.git $repo_dir
+            (cd $repo_dir && git fetch --depth 1 origin $commit_sha && git checkout $commit_sha)
+          done
+
+      - name: Run hyperfine on all repos
+        run: |
+          mkdir -p results_bench
+          cd test-repos
+          for repo in $TEST_REPOS; do
+            echo "Benchmarking repo $repo..."
+            repo_name=$(echo "$repo" | cut -d'@' -f1)
+            repo_dir=$(echo "$repo_name" | tr '/' '_')
+
+            # Reference Air
+            (cd "$repo_dir" && hyperfine --warmup 5 --min-runs 50 '$AIR_REF_BIN format --check .' --ignore-failure --export-json ../../results_bench/${repo_dir}_air.json) || true
+
+            # Current project
+            (cd "$repo_dir" && hyperfine --warmup 5 --min-runs 50 '$AIR_CUR_BIN format --check .' --ignore-failure --export-json ../../results_bench/${repo_dir}_current.json) || true
+          done
+
+      - name: Upload all result JSONs
+        uses: actions/upload-artifact@v7
+        with:
+          name: hyperfine-json-results
+          path: results_bench/
+
+      - name: Process benchmark results
+        run: |
+          source(".github/scripts/process_bench_ci.R", echo = TRUE)
+        shell: Rscript {0}
+
+      - name: Save PR number for downstream comment workflow
+        run: echo "${{ github.event.pull_request.number }}" > pr-number.txt
+
+      - name: Upload PR number
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-number
+          path: pr-number.txt
+
+      - name: Upload benchmark results for downstream comment workflow
+        uses: actions/upload-artifact@v7
+        with:
+          name: bench-results
+          path: benchmark.md

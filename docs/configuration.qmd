@@ -1,0 +1,300 @@
+---
+title: "Configuration"
+editor:
+  markdown:
+    wrap: sentence
+    canonical: true
+---
+
+Air can be configured using a TOML file named `air.toml`.
+Air is purposefully minimally configurable, with the main configuration points being related to line width and indent style.
+
+## Example configuration
+
+Below is a complete `air.toml` file showing all available options set to their default values:
+
+``` toml
+[format]
+line-width = 80
+indent-width = 2
+indent-style = "space"
+line-ending = "auto"
+persistent-line-breaks = true
+assignment-style = "arrow"
+exclude = []
+default-exclude = true
+skip = []
+table = []
+default-table = true
+```
+
+## Configuration recommendations
+
+For collaborative projects, we recommend creating an `air.toml` and placing it at your project root even if you plan to use the default Air settings.
+The easiest way to do this is by running the VS Code or Positron command `Air: Initialize Workspace Folder`, or by running [`usethis::use_air()`](https://usethis.r-lib.org/dev/reference/use_air.html) if you are using another IDE.
+
+The existence of an `air.toml` has a number of benefits:
+
+-   It stops Air from using user level editor settings.
+    When an `air.toml` is not present, Air respects some user level editor settings, such as `editor.tabWidth` in VS Code or Positron.
+    The presence of an `air.toml` (even an empty one) disables this, instead pulling all settings from the configuration file.
+    This ensures that settings are the same across team members, code editors, and in CI.
+
+-   It stops [configuration discovery] from extending outside your project.
+    Without an `air.toml` at the project root, Air might discover your local `~/packages/air.toml` as the configuration file to use for the `~/packages/dplyr` project.
+    By adding `~/packages/dplyr/air.toml`, you prevent configuration discovery from looking "above" `~/packages/dplyr`, again ensuring consistent settings across team members.
+
+-   It serves as a signal to others that your project is using Air.
+
+If you do plan to just use the defaults, the `air.toml` can be completely empty.
+The important thing is that it exists.
+
+If you're happy with Air's defaults (or your IDE settings, see [synchronization](#configuration-settings-synchronization)) and don't plan for your project to ever leave your computer, you likely don't need an `air.toml`.
+
+## Configuration discovery
+
+The ideal place to put an `air.toml` file is at your project root.
+For example, note the placement of `air.toml` in this minimal dplyr project:
+
+``` bash
+~/packages/dplyr
+├── air.toml
+├── DESCRIPTION
+├── NAMESPACE
+├── R
+├── src
+├── tests
+└── vignettes
+```
+
+If you run `air format` with a working directory of `~/packages/dplyr` or open your IDE in the dplyr project, then Air will find and use that TOML file.
+
+Air also supports walking up the directory tree from the project root.
+For example, if you ran `air format` from within `~/packages/dplyr/R`, then Air would look "up" one directory and would find and use `~/packages/dplyr/air.toml`.
+
+## Settings synchronization {#configuration-settings-synchronization}
+
+In IDEs that support synchronization (VS Code and Positron currently), Air does its best to ensure that the formatter and the IDE are in agreement.
+This is supported by two mechanisms:
+
+-   In projects that don't have an `air.toml` file, IDE settings are sent to Air.
+    This ensures that Air will use the same indentation style and width that is configured in the IDE.
+
+-   In projects that do have an `air.toml` file, the Air settings are sent to the IDE.
+    This ensures that the IDE will use the same indentation style and width that Air uses.
+
+The goal of this synchronization mechanism is for the IDE to work in lockstep with the Air formatter.
+
+## Dotfiles
+
+Air supports both `air.toml` and `.air.toml`.
+If both are present in the same directory, then `air.toml` is preferred (but we don't recommend this).
+
+## Format options
+
+All formatting options are specified under the `[format]` table.
+
+### line-width
+
+The preferred maximum line length.
+
+An integer value between 1 and 320, with a default of 80.
+
+While the formatter will attempt to format lines such that they remain within the `line-width`, it isn't a hard upper bound, and formatted lines may exceed the `line-width`.
+
+### indent-width
+
+The number of spaces per indentation level.
+
+An integer value between 1 and 24, with a default of 2.
+
+This option changes the number of spaces the formatter inserts when using `indent-style = "space"`.
+It also represents the width of a tab when `indent-style = "tab"` for the purposes of computing the `line-width`.
+
+### indent-style
+
+Whether to use spaces or tabs for indentation.
+
+One of the following values, with a default of `"space"`:
+
+-   `"space"`: Use spaces for indentation.
+
+-   `"tab"`: Use tabs for indentation.
+
+Air defaults to spaces due to the overwhelming amount of existing R code written in this style, but consider using tabs for new projects to improve accessibility.
+See `indent-width` to configure the number of spaces per indentation and the tab width.
+
+### line-ending
+
+The character air uses at the end of a line.
+
+One of the following values, with a default of `"auto"`:
+
+-   `"auto"`: The newline style is detected automatically on a file per file basis.
+    Files with mixed line endings will be converted to the first detected line ending.
+    Defaults to `\n` for files that contain no line endings.
+
+-   `"lf"`: Line endings will be converted to `\n`.
+    The typical line ending on Unix.
+
+-   `"crlf"`: Line endings will be converted to `\r\n`.
+    The typical line ending on Windows.
+
+-   `"native"`: Line endings will be converted to `\n` on Unix and `\r\n` on Windows.
+
+### persistent-line-breaks
+
+Whether or not persistent line breaks are allowed.
+
+Either `true` to respect persistent line breaks, or `false` to ignore them, with a default of `true`.
+
+Air respects a small set of persistent line breaks as an indication that certain function calls or function signatures should be left expanded.
+For example, the following list could be flattened to one line and would still fit within a `line-width` of 80, however, it remains expanded due to the persistent line break between the opening `(` and the first argument, `apple`.
+
+``` r
+dictionary <- list(
+  apple = 0.75,
+  banana = 0.25,
+  cherry = 0.50
+)
+```
+
+Similarly, this function signature could also be flattened, but is not, due to the persistent line break between the opening `(` and the first parameter, `...`.
+
+``` r
+case_when <- function(
+  ...,
+  .default = NULL,
+  .ptype = NULL,
+  .size = NULL
+) {
+  body
+}
+```
+
+To request flattening in these cases, just remove the persistent line break.
+For example:
+
+``` r
+# If you started here,
+dictionary <- list(
+  apple = 0.75,
+  banana = 0.25,
+  cherry = 0.50
+)
+
+# then do this, and run air,
+dictionary <- list(apple = 0.75,
+  banana = 0.25,
+  cherry = 0.50
+)
+
+# to get this.
+dictionary <- list(apple = 0.75, banana = 0.25, cherry = 0.50)
+```
+
+Alternatively, use a tool such as [codegrip](https://github.com/lionel-/codegrip) bound to a keyboard shortcut to flatten the code, and Air will keep it flattened as long as it fits within the `line-width`.
+
+It may be preferable to ignore persistent line breaks if you prefer that `line-width` should be the only value that influences line breaks.
+
+### assignment-style
+
+The preferred assignment style to use.
+
+One of the following values, with a default of `"arrow"`:
+
+-   `"arrow"`: Use `<-`.
+
+-   `"equal"`: Use `=`.
+
+-   `"preserve"`: Assignment operators are preserved as is.
+
+Note that changing from `<-` to `=` is not always possible.
+For example, `f(x <- 5)` can't be rewritten as `f(x = 5)` because that would parse as an argument named `x`.
+In these cases, the `<-` is left as is.
+
+### exclude
+
+The set of additional files and folders to exclude.
+
+A list of strings, i.e. `exclude = ["file.R", "folder/", "files-like-*-this.R"]`.
+
+By default, Air will refuse to format files matched by patterns listed in `default-exclude`.
+Use this option to supply an additional list of exclude patterns.
+
+Exclude patterns are modeled after what you can provide in a [.gitignore](https://git-scm.com/docs/gitignore), and are resolved relative to the parent directory that your `air.toml` is contained within.
+For example, if your `air.toml` was located at `root/air.toml`, then:
+
+-   `file.R` excludes a file named `file.R` located anywhere below `root/`.
+    This is equivalent to `**/file.R`.
+
+-   `folder/` excludes a directory named `folder` (and all of its children) located anywhere below `root/`.
+    You can also just use `folder`, but this would technically also match a file named `folder`, so the trailing slash is preferred when targeting directories.
+    This is equivalent to `**/folder/`.
+
+-   `/file.R` excludes a file named `file.R` located at `root/file.R`.
+
+-   `/folder/` excludes a directory named `folder` (and all of its children) located at `root/folder/`.
+
+-   `file-*.R` excludes R files named like `file-this.R` and `file-that.R` located anywhere below `root/`.
+
+-   `folder/*.R` excludes all R files located at `root/folder/`.
+    Note that R files in directories under `folder/` are not excluded in this case (such as `root/folder/subfolder/file.R`).
+
+-   `folder/**/*.R` excludes all R files located anywhere below `root/folder/`.
+
+-   `**/folder/*.R` excludes all R files located directly inside a `folder/` directory, where the `folder/` directory itself can appear anywhere.
+
+See the full [.gitignore](https://git-scm.com/docs/gitignore) documentation for all of the patterns you can provide.
+
+### default-exclude
+
+Whether or not the default file exclude patterns are used.
+
+Either `true` to use the default exclude patterns, or `false` to not use them, with a default of `true`.
+
+By default, Air excludes a set of files and folders that you are unlikely to want formatting in.
+The complete list of default exclude patterns is:
+
+-   `.git/`
+-   `renv/`
+-   `revdep/`
+-   `cpp11.R`
+-   `RcppExports.R`
+-   `extendr-wrappers.R`
+-   `import-standalone-*.R`
+
+### skip {#configuration-skip}
+
+The set of function names to skip formatting for, even without a `# fmt: skip` comment.
+
+A list of strings, i.e. `skip = ["my_dsl_function", "graph_from_literal"]`.
+
+Air typically formats every function call it comes across.
+To skip formatting of a single function call, you can use a `# fmt: skip` comment.
+However, if you know of particular functions that you use a lot that are part of a custom domain specific language that doesn't follow conventional formatting rules, you can entirely opt out of formatting for those functions by providing them here.
+
+For example, using `skip = ["graph_from_literal"]` would automatically skip formatting of:
+
+``` r
+igraph::graph_from_literal(A +-+ B +---+ C ++ D + E)
+```
+
+### table {#configuration-table}
+
+Some function calls are meant to be formatted as tables, rather than being formatted in a flat or expanded layout.
+For a single one-off function call, you can use a `# fmt: table` comment to request a table layout.
+For function calls that you use a lot, use this setting to add them to a list of function calls that are automatically formatted as tables without requiring a `# fmt: table` comment.
+
+For example, using `table = ["my_table"]` would automatically format calls to `my_table()` in a table layout.
+
+See `default-table` for the list of function calls that are automatically formatted as tables by default.
+
+### default-table
+
+Air automatically formats a default set of calls as tables.
+You can disable these defaults by setting this option to `false`.
+The default set currently includes:
+
+-   `tribble()` from tibble
+-   `fcase()` from data.table

@@ -1,0 +1,13 @@
+/target
+
+# From quarto preview
+README.html
+README_files
+
+# We often edit docs in RStudio
+.Rproj.user
+.Rhistory
+.RData
+.httr-oauth
+.DS_Store
+.quarto

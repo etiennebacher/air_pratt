@@ -1,0 +1,46 @@
+---
+source: crates/air_r_parser/tests/spec_test.rs
+expression: snapshot
+---
+## Input
+
+```R
+()
+```
+
+
+## AST
+
+```
+RRoot {
+    bom_token: missing (optional),
+    expressions: RExpressionList [
+        RBogusExpression {
+            items: [
+                L_PAREN@0..1 "(" [] [],
+                R_PAREN@1..2 ")" [] [],
+            ],
+        },
+    ],
+    eof_token: EOF@2..2 "" [] [],
+}
+```
+
+## CST
+
+```
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..2
+    0: R_BOGUS_EXPRESSION@0..2
+      0: L_PAREN@0..1 "(" [] []
+      1: R_PAREN@1..2 ")" [] []
+  2: EOF@2..2 "" [] []
+
+```
+
+## Errors
+
+```
+Failed to parse due to syntax errors.
+```

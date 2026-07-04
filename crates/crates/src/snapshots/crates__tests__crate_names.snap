@@ -1,0 +1,27 @@
+---
+source: crates/crates/src/lib.rs
+expression: AIR_CRATE_NAMES
+---
+[
+    "aether_lsp_utils",
+    "air",
+    "air_formatter_test",
+    "air_r_factory",
+    "air_r_formatter",
+    "air_r_parser",
+    "air_r_syntax",
+    "biome_ungrammar",
+    "comments",
+    "crates",
+    "fs",
+    "line_ending",
+    "lsp",
+    "lsp_test",
+    "settings",
+    "tests_macros",
+    "workspace",
+    "xtask",
+    "xtask_codegen",
+    "xtask_json_schema",
+    "zed_air",
+]

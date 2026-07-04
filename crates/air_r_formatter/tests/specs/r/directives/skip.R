@@ -1,0 +1,169 @@
+# -----------------------------------------------------------------------------
+# Basic positioning
+
+# This should be formatted
+1+1
+
+# fmt: skip
+1+1
+
+# This should be formatted
+1+1 # fmt: skip
+
+# This should be formatted
+1+1
+# fmt: skip
+NULL
+
+# fmt: skip
+# Interleaving comment
+1+1
+
+# fmt: skip
+
+1+1
+
+# This should be formatted
+1+1
+
+# -----------------------------------------------------------------------------
+# Calls
+
+# fmt: skip
+fn(
+  1+1, 2+2
+)
+
+# This should be formatted
+fn(
+  1+1, 2+2
+) # fmt: skip
+
+# Just this argument
+fn(
+    # fmt: skip
+    1+1,
+    2+2
+)
+
+# This should be formatted
+fn(
+    1+1, # fmt: skip
+    2+2
+)
+
+# This should be formatted
+fn(
+  1+1, 2+2 # fmt: skip
+)
+
+# Aligned lists
+# fmt: skip
+list(
+  this      = 1,
+  that      = 2,
+  thisthing = 3,
+  thatthing = 4,
+  andthis   = 5
+)
+
+# -----------------------------------------------------------------------------
+# Tribble
+
+# Important test case
+
+# fmt: skip
+tribble(
+  ~a, ~b,
+   1,  2
+)
+
+# -----------------------------------------------------------------------------
+# Binary expression chains
+
+# Skips everything in the chain
+# fmt: skip
+foo |>
+  bar() |> baz()
+
+foo |>
+  # `bar()` should not be formatted
+  # fmt: skip
+  bar(a = 1,
+    b = 2
+  ) |> baz(a = 1,
+    b = 2
+  )
+
+# -----------------------------------------------------------------------------
+# Functions
+
+# fmt: skip
+# Everything in the function
+function(){
+    1+1
+}
+
+# fmt: skip
+# Everything within the assignment expression of `<-`
+fn<-function(){
+    1+1
+}
+
+function(){
+    # fmt: skip
+    # Just this line
+    1+1
+    2+2
+}
+
+# This should be formatted
+function(a=1
+# fmt: skip
+)
+{
+    1+1
+}
+
+
+# -----------------------------------------------------------------------------
+# Braced expressions
+
+# fmt: skip
+# Everything inside
+{
+    1+1
+    2+2
+}
+
+{
+    # fmt: skip
+    # Just this line
+    1+1
+    2+2
+}
+
+
+# -----------------------------------------------------------------------------
+# Parenthesized expressions
+
+# This should be formatted
+(
+  # fmt:skip
+  1+1
+)+1
+
+# This should be formatted
+(
+  1+1 # fmt:skip
+)+1
+
+
+# -----------------------------------------------------------------------------
+# If statements and comments
+
+# fmt: skip
+if (TRUE) 1+1 # hi
+
+# This should be formatted
+if (1+1) 1+1 # fmt: skip

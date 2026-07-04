@@ -1,0 +1,201 @@
+---
+title: "Command line interface"
+editor:
+  markdown:
+    wrap: sentence
+    canonical: true
+---
+
+# Installation
+
+If you'd like to use Air at the command line, you can use one of our standalone installers.
+
+Note that if you'd like to use Air inside VS Code or Positron, then the Extension for those editors comes pre-bundled with an Air binary, so there's nothing you need to do besides [download the Extension](editor-vscode.qmd).
+
+On macOS and Linux:
+
+``` bash
+curl -LsSf https://github.com/posit-dev/air/releases/latest/download/air-installer.sh | sh
+```
+
+On Windows:
+
+``` powershell
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/posit-dev/air/releases/latest/download/air-installer.ps1 | iex"
+```
+
+For a specific version:
+
+``` bash
+curl -LsSf https://github.com/posit-dev/air/releases/download/0.10.0/air-installer.sh | sh
+```
+
+``` powershell
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/posit-dev/air/releases/download/0.10.0/air-installer.ps1 | iex"
+```
+
+The installer scripts will automatically add Air to your `PATH`.
+The very first time you install Air, for the `PATH` modifications to be applied you'll need to restart your terminal.
+
+## uv
+
+If you use [uv](https://docs.astral.sh/uv/), you can install Air via the [air-formatter](https://pypi.org/project/air-formatter/) package:
+
+``` bash
+# Global install
+uv tool install air-formatter
+air format path/to/my/script.R
+
+# Invoke once without installing
+uvx --from air-formatter air format path/to/my/script.R
+```
+
+## Homebrew
+
+If you're on macOS and are familiar with [Homebrew](https://brew.sh/), you can install the [air formula](https://formulae.brew.sh/formula/air) with:
+
+``` bash
+brew install air
+```
+
+Air's Homebrew formula is community-maintained.
+
+## Pixi
+
+You can use [Pixi](https://pixi.prefix.dev/latest/) to install Air from [conda-forge](https://github.com/conda-forge/air-feedstock):
+
+``` bash
+# Add to a project
+pixi add air
+pixi run air format path/to/my/script.R
+
+# Install globally
+pixi global install air
+
+# Run one-off command
+pixi exec air format path/to/my/script.R
+```
+
+Air's conda-forge package is community-maintained.
+
+## mise
+
+You can use [mise](https://mise.jdx.dev/) to install Air from [conda-forge](https://github.com/conda-forge/air-feedstock):
+
+``` bash
+# Add to a project
+mise use conda:air
+air format path/to/my/script.R
+
+# Install globally
+mise use --global conda:air
+
+# Run one-off command
+mise exec conda:air -- air format path/to/my/script.R
+```
+
+Air's conda-forge package is community-maintained.
+
+# Features
+
+## Stdin
+
+Air supports reading from stdin at the command line via `--stdin-file-path`.
+When this flag is supplied, Air will read input from stdin and emit the formatted output over stdout.
+
+``` bash
+cat path/to/file.R | air format --stdin-file-path path/to/file.R
+```
+
+`--stdin-file-path` provides the path to the file being formatted over stdin.
+This allows Air to begin a configuration file search from that location to ensure that the correct `air.toml` is found.
+This location is also used when applying `exclude` and `default-exclude` patterns to determine if stdin should be formatted or emitted verbatim.
+
+If your IDE only supports formatting via stdin, it generally provides this file path as an input.
+For example, in Zed you can specify:
+
+``` json
+"formatter": {
+  "external": {
+    "command": "air",
+    "arguments": ["format", "--stdin-file-path", "{buffer_path}"]
+  }
+}
+```
+
+The path provided to `--stdin-file-path` does not have to exist, and is not read from.
+This can be useful when you're about to write some content to a file, but haven't created it yet and want to format it first using the project's preexisting `air.toml`:
+
+``` bash
+content-on-stdout | air format --stdin-file-path project/eventual-file.R > project/eventual-file.R
+```
+
+Assuming there is an `air.toml` located at `project/air.toml`, it would be detected and used when formatting this content.
+
+When `--stdin-file-path` is used, no other files or directories can be provided, i.e. this would error:
+
+``` bash
+air format folder/ --stdin-file-path file.R
+```
+
+If a relative path is provided to `--stdin-file-path`, it is resolved from the current working directory.
+
+## Shell completions
+
+Air supports completions for many shells.
+`air generate-shell-completion <SHELL>` emits a shell specific completion script over stdout, which can be invoked on shell startup to provide completions for Air.
+`<SHELL>` must be one of: `bash`, `zsh`, `powershell`, `fish`, or `elvish`.
+
+To enable shell completions, run one of the following to add an `air generate-shell-completion` call to your shell's startup procedure, then restart the shell.
+After that, `air <tab>` should provide completions for Air commands.
+
+::: panel-tabset
+## Bash
+
+``` bash
+echo 'eval "$(air generate-shell-completion bash)"' >> ~/.bashrc
+```
+
+## Zsh
+
+``` bash
+echo 'eval "$(air generate-shell-completion zsh)"' >> ~/.zshrc
+```
+
+## Powershell
+
+``` powershell
+if (!(Test-Path -Path $PROFILE)) {
+  New-Item -ItemType File -Path $PROFILE -Force
+}
+Add-Content -Path $PROFILE -Value '(& air generate-shell-completion powershell) | Out-String | Invoke-Expression'
+```
+
+## Fish
+
+``` bash
+echo 'air generate-shell-completion fish | source' > ~/.config/fish/completions/air.fish
+```
+
+## Elvish
+
+``` bash
+echo 'eval (air generate-shell-completion elvish | slurp)' >> ~/.elvish/rc.elv
+```
+:::
+
+## Git
+
+Air respects your `.gitignore` while performing file discovery, i.e. while looking for R files within `folder/` when running `air format folder/`.
+For example, with a project level `.gitignore` containing `scratch/`, a call to `air format .` would refuse to search within a `scratch/` folder.
+
+`.gitignore` works slightly differently from `exclude` with directly supplied files and folders.
+For a call to `air format file.R`:
+
+-   If you have an `exclude` of `exclude = ["file.R"]`, then Air would refuse to format `file.R` even though it was directly supplied.
+
+-   If your `.gitignore` contains `file.R`, then Air would still format `file.R`.
+
+Similarly, a call to `air format folder/` would be refused with `exclude = ["folder/"]`, but would be searched with a `.gitignore` containing `folder/`.
+
+These differences are mostly for technical reasons, and we hope they do not cause many practical difficulties.

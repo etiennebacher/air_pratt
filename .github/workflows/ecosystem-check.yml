@@ -1,0 +1,181 @@
+# Compares the formatting decisions of the reference Air binary against the
+# current project's binary across a set of real-world R repositories. Both tools
+# are run with `format --check` so they never modify files; we compare the set
+# of files each would reformat (and any files each fails to parse/format).
+#
+# Note: `--check` only reports *whether* a file would change, not *how*. Files
+# that both tools would reformat are therefore not compared at the output level;
+# this surfaces divergent reformat decisions and parse/format regressions.
+#
+# Results are published by "ecosystem-check-comment.yml" (see the comment in
+# that file for why this is split into two workflows).
+
+name: Ecosystem check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/ecosystem-check.yml
+      - .github/scripts/process_ecosystem_ci.R
+      - crates/**/src/**
+      - crates/**/Cargo.toml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Disable ANSI colors so the CLI output can be parsed and compared reliably.
+  NO_COLOR: "1"
+  TEST_REPOS: |
+    # packages
+    apache/arrow@ec56b377340feb8d46b289342b403aa489effaa1
+    cran/survey@4834b8bc91f6414ad4514552daaed8990a86d9c1
+    easystats/datawizard@7466ff6f91040e25f826b224a4ef5e9aeb63b567
+    igraph/rigraph@ea3c69f64c7d888a37eaa5e3d82291e04975b5da
+    klmr/box@46bec1bc4d8273c42b85c0d7b4323721c2ad45f5
+    lrberge/stringmagic@87b187d40c745ea1d8496f071aee7229985da23c
+    mlr-org/mlr3@127da9a11073142226b76235ce4391ea0029477d
+    nlmixr2/nlmixr2est@78f8d3e19e04a628337b3739e27821eca1d31699
+    pola-rs/r-polars@055f891d977d6a8004fe8ab1bb5d47cfdd44872a
+    R-ArcGIS/arcgisgeocode@3a7877641ca2f3a761ef0ec3a7486820ab94c9cc
+    RcppCore/RcppArmadillo@201718fa64d78191cb42142c794e50e2581be3b3
+    Rdatatable/data.table@d7833cb3a0c36ab329fcfe5cc1523449663f898f
+    ropensci/targets@d45243e1a239da467c6e96e0069ecb7368f78021
+    ropensci-review-tools/pkgcheck@12d80c8ad3bc39c94174f0276386869a52568135
+    rstudio/shiny@b6e9e9d216cd574cf8985d23772399f51ee4a4ac
+    tidymodels/parsnip@5b50c54cbbe67d715b172d5a9e994d496509d9dd
+    tidyverse/dplyr@384ff2c4af79a9bd9142d8bdab23efbcd52f275b
+    tidyverse/ggplot2@bed8e32d45c7dc98afb783b409edac98854d41a7
+    topepo/caret@550f821cd7966c51e4cfd4b3d3e1efe6e47c06c7
+    vincentarelbundock/marginaleffects@ffe5a4f5962a9ba51c3e68e1c55eea62887c25da
+    wch/r-source@b5cf23a805f4305852f55c4148f2a302b06844b5
+
+    # other
+    alexpghayes/network-mediation-replication@05ecf2df92d018a433d192f6fb2f598b7ce71000
+    atsyplenkov/nth-west-caucasus-sediments@8f2f400405603fbe0474fce97720082bb9749325
+    geocompx/geocompr@ee6ef3aa98c3c5cdb13fa1bd674b0a5332b9db3c
+    grantmcdermott/skeptic-priors@45de00d7593e462c6d6ac9d5185733ff9665ea90
+    lrberge/linking_winst@5256288ff88cdd9f32241bf3a85ccf7627691a08
+    rmcelreath/stat_rethinking_2026@e543cef90588cae06fadc3532142964d9cba4fd9
+    TheAlgorithms/R@f65344fabeea0ae33c1ca321af709447c1a8a4c2
+    viralemergence/virion@c739159968699d1c83fab23c2482ca9af3997262
+
+jobs:
+  ecosystem-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1.16.1
+
+      - name: Set up R to process results
+        uses: r-lib/actions/setup-r@v2.12.0
+        with:
+          use-public-rspm: true
+
+      - name: Build current project binary
+        run: |
+          cargo build --release --package air
+          cp target/release/air target/release/air-current
+          echo "AIR_CUR_BIN=$(pwd)/target/release/air-current" >> $GITHUB_ENV
+
+      - name: Download reference Air binary
+        run: |
+          url="https://github.com/posit-dev/air/releases/latest/download/air-x86_64-unknown-linux-gnu.tar.gz"
+          echo "Downloading reference Air ${AIR_VERSION} from ${url}"
+          curl --proto '=https' --tlsv1.2 -LsSf "$url" -o air-ref.tar.gz
+          mkdir -p air-ref
+          tar -xzf air-ref.tar.gz -C air-ref
+          bin=$(find air-ref -type f -name air | head -n1)
+          chmod +x "$bin"
+          echo "AIR_REF_BIN=$bin" >> $GITHUB_ENV
+          "$bin" --version
+
+      - name: Clone all test repos
+        run: |
+          mkdir -p test-repos
+          cd test-repos
+          for repo in $TEST_REPOS; do
+            # Skip category markers / comment words (only real entries have "@").
+            case "$repo" in
+              *@*) ;;
+              *) continue ;;
+            esac
+
+            repo_name=$(echo "$repo" | cut -d'@' -f1)
+            commit_sha=$(echo "$repo" | cut -d'@' -f2)
+            repo_dir=$(echo "$repo_name" | tr '/' '_')
+
+            git clone --revision=$commit_sha --depth 1 https://github.com/$repo_name.git $repo_dir
+          done
+
+      - name: Run both formatters on all repos
+        run: |
+          mkdir -p results
+          cd test-repos
+          for repo in $TEST_REPOS; do
+            # Skip category markers / comment words (only real entries have "@").
+            case "$repo" in
+              *@*) ;;
+              *) continue ;;
+            esac
+
+            repo_name=$(echo "$repo" | cut -d'@' -f1)
+            repo_dir=$(echo "$repo_name" | tr '/' '_')
+
+            for tool in air current; do
+              case "$tool" in
+                air) bin="$AIR_REF_BIN" ;;
+                current) bin="$AIR_CUR_BIN" ;;
+              esac
+
+              # `format --check` writes "Would reformat: <path>" for files that
+              # would change and "Failed to format/read <path>: <err>" for
+              # files it can't process. It never modifies files. Capture both
+              # streams, then split the two kinds of lines into separate lists.
+              out=$(cd "$repo_dir" && "$bin" format --check . 2>&1 || true)
+              printf '%s\n' "$out" | sed -n 's/^Would reformat: //p' | sort -u > "../results/${repo_dir}_${tool}_reformat.txt"
+              printf '%s\n' "$out" | sed -n -E 's/^Failed to (format|read) ([^:]+): .*/\2/p' | sort -u > "../results/${repo_dir}_${tool}_failed.txt"
+            done
+          done
+
+      - name: Upload all result lists
+        uses: actions/upload-artifact@v7
+        with:
+          name: ecosystem-file-lists
+          path: results/
+
+      - name: Process ecosystem results
+        run: |
+          source(".github/scripts/process_ecosystem_ci.R", echo = TRUE)
+        shell: Rscript {0}
+
+      - name: Save PR number for downstream comment workflow
+        run: echo "${{ github.event.pull_request.number }}" > pr-number.txt
+
+      - name: Upload PR number
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-number
+          path: pr-number.txt
+
+      - name: Upload ecosystem comparison for downstream comment workflow
+        uses: actions/upload-artifact@v7
+        with:
+          name: ecosystem-results
+          path: ecosystem_comparison.md

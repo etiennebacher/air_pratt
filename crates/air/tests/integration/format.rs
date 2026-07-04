@@ -1,0 +1,854 @@
+use std::path::Path;
+use std::process::Command;
+use std::process::Stdio;
+
+use tempfile::TempDir;
+
+use crate::helpers::CommandExt;
+use crate::helpers::binary_path;
+use crate::helpers::path_root;
+use crate::helpers::relative_path_fixtures;
+
+#[test]
+fn test_default_options() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let path = "test.R";
+    std::fs::write(directory.join(path), "1 + 1")?;
+
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(path)
+        .run();
+
+    assert!(output.status.success());
+    Ok(())
+}
+
+#[test]
+fn test_default_exclude_patterns() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "1+1";
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    let cpp11_path = "cpp11.R";
+    let cpp11_contents = "1+1";
+    std::fs::write(directory.join(cpp11_path), cpp11_contents)?;
+
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(".")
+        .run();
+
+    assert!(output.status.success());
+
+    // Only `test.R` should be formatted, `cpp11.R` is a default exclude
+    assert!(test_contents != std::fs::read_to_string(directory.join(test_path))?);
+    assert_eq!(
+        cpp11_contents,
+        std::fs::read_to_string(directory.join(cpp11_path))?
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_default_exclude_patterns_with_explicit_format_file_request() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let cpp11_path = "cpp11.R";
+    let cpp11_contents = "1+1";
+    std::fs::write(directory.join(cpp11_path), cpp11_contents)?;
+
+    // Formatting of `air format cpp11.R` is explicitly requested, but it matches a
+    // `default_exclude`, so we refuse to format it. This helps with pre-commit and
+    // RStudio, which might supply these paths on behalf of the user and don't know
+    // anything about our `exclude` rules.
+    // https://github.com/posit-dev/air/issues/472
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(cpp11_path)
+        .run();
+
+    assert!(output.status.success());
+
+    assert_eq!(
+        cpp11_contents,
+        std::fs::read_to_string(directory.join(cpp11_path))?
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_default_exclude_patterns_with_explicit_format_folder_request() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let renv_directory = "renv";
+    std::fs::create_dir(directory.join(renv_directory))?;
+
+    let activate_path = "activate.R";
+    let activate_contents = "1+1";
+    std::fs::write(
+        directory.join(renv_directory).join(activate_path),
+        activate_contents,
+    )?;
+
+    // Formatting of `air format renv` is explicitly requested.
+    // Like with directly specified files that match `default_exclude`s, this is ignored.
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(renv_directory)
+        .run();
+
+    assert!(output.status.success());
+
+    assert_eq!(
+        activate_contents,
+        std::fs::read_to_string(directory.join(renv_directory).join(activate_path))?
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_modified_exclude_patterns() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "1+1";
+
+    let cpp11_path = "cpp11.R";
+    let cpp11_contents = "1+1";
+
+    let air_path = "air.toml";
+    let air_contents = r#"
+[format]
+exclude = ["test.R"]
+default-exclude = false
+"#;
+
+    // Turn off `default-exclude`, turn on the custom `exclude`
+    std::fs::write(directory.join(test_path), test_contents)?;
+    std::fs::write(directory.join(cpp11_path), cpp11_contents)?;
+    std::fs::write(directory.join(air_path), air_contents)?;
+
+    // Only `cpp11.R` should be formatted
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(".")
+        .run();
+
+    assert!(output.status.success());
+
+    assert_eq!(
+        test_contents,
+        std::fs::read_to_string(directory.join(test_path))?
+    );
+    assert!(cpp11_contents != std::fs::read_to_string(directory.join(cpp11_path))?);
+
+    Ok(())
+}
+
+#[test]
+fn test_skipped_multiline_node_with_crlf_line_endings_isnt_corrupted() -> anyhow::Result<()> {
+    // The `1\r\n+1` is treated as a single token, but is normalized to `1\n+1` before the
+    // printer sees it, which the printer then rewrites back to `1\r\n+1` (#498).
+
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "# fmt: skip\r\n1\r\n+1\r\n2+2\r\n";
+
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(".")
+        .run();
+
+    assert!(output.status.success());
+    assert_eq!(
+        std::fs::read_to_string(directory.join(test_path))?,
+        "# fmt: skip\r\n1\r\n+1\r\n2 + 2\r\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn test_skipped_file_with_crlf_line_endings_isnt_corrupted() -> anyhow::Result<()> {
+    // All of `# fmt: skip file\r\n1+1\r\n2+2\r\n` is treated as a single token, but is
+    // normalized to `# fmt: skip file\n1+1\n2+2\n` before the printer sees it, which the
+    // printer then rewrites back with `\r\n` (#498).
+
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "# fmt: skip file\r\n1+1\r\n2+2\r\n";
+
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(".")
+        .run();
+
+    assert!(output.status.success());
+    assert_eq!(
+        std::fs::read_to_string(directory.join(test_path))?,
+        test_contents
+    );
+    Ok(())
+}
+
+#[test]
+fn test_skipped_multiline_node_with_crlf_line_endings_can_have_line_endings_rewritten()
+-> anyhow::Result<()> {
+    // `# fmt: skip` means `1\r\n+1` won't be reformatted, but the line endings MUST still
+    // be rewritten to `\n` due to `line-ending = "lf"`, otherwise it would create a file
+    // with mixed line endings, and that would be madness.
+    //
+    // So `# fmt: skip` is considered orthogonal to `line-ending` (#507).
+
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "# fmt: skip\r\n1\r\n+1\r\n2+2\r\n";
+
+    let air_path = "air.toml";
+    let air_contents = r#"
+[format]
+line-ending = "lf"
+"#;
+
+    std::fs::write(directory.join(test_path), test_contents)?;
+    std::fs::write(directory.join(air_path), air_contents)?;
+
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(".")
+        .run();
+
+    assert!(output.status.success());
+    assert_eq!(
+        std::fs::read_to_string(directory.join(test_path))?,
+        "# fmt: skip\n1\n+1\n2 + 2\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn test_skipped_file_with_crlf_line_endings_can_have_line_endings_rewritten() -> anyhow::Result<()>
+{
+    // `# fmt: skip file` means `# fmt: skip file\r\n1+1\r\n2+2\r\n` won't be reformatted,
+    // but the line endings MUST still be rewritten to `\n` due to `line-ending = "lf"`.
+    //
+    // We asserted above that `# fmt: skip` must rewrite to `\n` to avoid mixed line
+    // endings in a single file. `# fmt: skip file` should be consistent with that,
+    // so it is also considered orthogonal to `line-ending`. If you truly want to avoid
+    // any changes to the file, `exclude` it (#507).
+
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "# fmt: skip file\r\n1+1\r\n2+2\r\n";
+
+    let air_path = "air.toml";
+    let air_contents = r#"
+[format]
+line-ending = "lf"
+"#;
+
+    std::fs::write(directory.join(test_path), test_contents)?;
+    std::fs::write(directory.join(air_path), air_contents)?;
+
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(".")
+        .run();
+
+    assert!(output.status.success());
+    assert_eq!(
+        std::fs::read_to_string(directory.join(test_path))?,
+        "# fmt: skip file\n1+1\n2+2\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn test_check_returns_cleanly_for_multiline_strings_with_crlf_line_endings() {
+    let path = relative_path_fixtures()
+        .join("crlf")
+        .join("multiline_string_value.R");
+
+    let output = Command::new(binary_path())
+        .current_dir(path_root())
+        .arg("format")
+        .arg(path)
+        .arg("--check")
+        .run();
+
+    assert!(output.status.success());
+}
+
+#[test]
+fn test_check_when_no_formatting_is_required() {
+    let path = relative_path_fixtures().join("formatted.R");
+    let path = path.to_str().unwrap();
+
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(path_root())
+            .arg("format")
+            .arg(path)
+            .arg("--check")
+            .run()
+            .normalize_os_path_separator()
+    );
+}
+
+#[test]
+fn test_check_output_format() {
+    let path1 = relative_path_fixtures().join("needs-formatting-1.R");
+    let path1 = path1.to_str().unwrap();
+
+    let path2 = relative_path_fixtures().join("needs-formatting-2.R");
+    let path2 = path2.to_str().unwrap();
+
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(path_root())
+            .arg("format")
+            .arg(path1)
+            .arg(path2)
+            .arg("--check")
+            .run()
+            .normalize_os_path_separator()
+    );
+}
+
+#[test]
+fn test_stdin_cant_supply_paths() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "1+\n1";
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    // Can't supply `format <path>` along with `--stdin-file-path`
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg(test_path)
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .arg("--no-color")
+            .run_with_stdin(test_contents.to_string())
+            .normalize_os_path_separator()
+    );
+
+    // Can't supply `format .` along with `--stdin-file-path`
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg(".")
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .arg("--no-color")
+            .run_with_stdin(test_contents.to_string())
+            .normalize_os_path_separator()
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_stdin_uses_default_air_toml_settings() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "1+\n1";
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    // Running in `directory` with a relative path to `test_path`. No `air.toml` found in
+    // `directory` or its ancestors, so we use default settings.
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .run_with_stdin(test_contents.to_string())
+            .remove_arguments()
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_stdin_finds_air_toml_from_stdin_file_path() -> anyhow::Result<()> {
+    // The directory we run from won't have an `air.toml` in it
+    let current_directory = TempDir::new()?;
+    let current_directory = current_directory.path();
+
+    // The directory that `test.R` lives in will have one
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "1+\n1";
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    let air_path = "air.toml";
+    let air_contents = r#"
+[format]
+indent-width = 4
+"#;
+    std::fs::write(directory.join(air_path), air_contents)?;
+
+    // `current_directory` is where we run from, but we supply an absolute path of
+    // `directory.join(test_path)`, and that is where we perform `air.toml` search from
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(current_directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(directory.join(test_path))
+            .run_with_stdin(test_contents.to_string())
+            .remove_arguments()
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_stdin_relative_stdin_file_paths_resolve_from_working_directory() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "1+\n1";
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    let air_path = "air.toml";
+    let air_contents = r#"
+[format]
+indent-width = 4
+"#;
+    std::fs::write(directory.join(air_path), air_contents)?;
+
+    // `directory` is supplied as current directory, and note that `test_path` is supplied
+    // as a relative path. It is resolved relative to `directory` and then we find the
+    // `air.toml` from there.
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .run_with_stdin(test_contents.to_string())
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_stdin_fake_stdin_file_path() -> anyhow::Result<()> {
+    let test_contents = "1+\n1";
+
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    // Absolute path to `fake_file`
+    let fake_file = directory.join("fake.R");
+
+    // `fake_file` does not exist, but is still used as the place to start for `air.toml`
+    // detection. With the current setup it doesn't find any `air.toml`.
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(path_root())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(&fake_file)
+            .run_with_stdin(test_contents.to_string())
+            .remove_arguments()
+    );
+
+    let air_path = "air.toml";
+    let air_contents = r#"
+[format]
+indent-width = 4
+"#;
+    std::fs::write(directory.join(air_path), air_contents)?;
+
+    // Now we've written an `air.toml` in the `directory`. Even though `fake_file` itself
+    // doesn't exist, we still find the `air.toml`.
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(path_root())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(&fake_file)
+            .run_with_stdin(test_contents.to_string())
+            .remove_arguments()
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_stdin_empty_input() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+
+    // Empty stdin in write mode should succeed and produce empty stdout
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .run_with_stdin(String::new())
+    );
+
+    // Empty stdin in check mode should succeed (nothing to change)
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .arg("--check")
+            .run_with_stdin(String::new())
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_stdin_errors_on_parse_error() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "1+/1";
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .arg("--no-color")
+            .run_with_stdin(test_contents.to_string())
+            .remove_arguments()
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_stdin_works_correctly_with_check() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "1+1\n";
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    // This requires formatting, so errors with exit code 1. We don't "inform" the user
+    // which file needs changes like we do when formatting paths, because it is obviously
+    // stdin.
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .arg("--check")
+            .run_with_stdin(test_contents.to_string())
+            .remove_arguments()
+    );
+
+    let test_contents = "1 + 1\n";
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    // No changes required here (and we've carefully remembered the trailing newline!)
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .arg("--check")
+            .run_with_stdin(test_contents.to_string())
+            .remove_arguments()
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_stdin_refuses_to_format_default_excludes() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let cpp11_path = "cpp11.R";
+    let cpp11_contents = "1+1";
+
+    // `**/cpp11.R` is a `default-exclude` so it should refuse to format `cpp11.R` and
+    // just reemit the existing `1+1` asis
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(cpp11_path)
+            .run_with_stdin(cpp11_contents.to_string())
+    );
+
+    let renv_directory = "renv";
+    std::fs::create_dir(directory.join(renv_directory))?;
+
+    let activate_path = "activate.R";
+    let activate_contents = "1+1";
+
+    // `**/renv/` is a `default-exclude` so it should refuse to format `renv/activate.R`
+    // and just reemit the existing `1+1` asis
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(Path::new(renv_directory).join(activate_path))
+            .run_with_stdin(activate_contents.to_string())
+            .normalize_os_path_separator()
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_stdin_refuses_to_format_user_excludes() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let test_path = "test.R";
+    let test_contents = "1+1";
+    std::fs::write(directory.join(test_path), test_contents)?;
+
+    let air_path = "air.toml";
+    let air_contents = r#"
+[format]
+exclude = ["test.R"]
+"#;
+    std::fs::write(directory.join(air_path), air_contents)?;
+
+    // `test.R` is an `exclude` so it should refuse to format this and just reemit the
+    // existing `1+1` asis
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(test_path)
+            .run_with_stdin(test_contents.to_string())
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_force_overrides_default_excludes_with_paths_write() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let cpp11_path = "cpp11.R";
+    let cpp11_contents = "1+1";
+    std::fs::write(directory.join(cpp11_path), cpp11_contents)?;
+
+    // `--force` overrides the `default-exclude` that would normally skip `cpp11.R`
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(cpp11_path)
+        .arg("--force")
+        .run();
+
+    assert!(output.status.success());
+
+    assert!(cpp11_contents != std::fs::read_to_string(directory.join(cpp11_path))?);
+
+    Ok(())
+}
+
+#[test]
+fn test_force_overrides_default_excludes_with_paths_check() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let cpp11_path = "cpp11.R";
+
+    // `--force --check` reports that `cpp11.R` would be reformatted
+    let cpp11_contents = "1+1\n";
+    std::fs::write(directory.join(cpp11_path), cpp11_contents)?;
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(cpp11_path)
+        .arg("--force")
+        .arg("--check")
+        .run();
+    assert!(!output.status.success());
+
+    // `--force --check` reports that `cpp11.R` would not be reformatted
+    let cpp11_contents = "1 + 1\n";
+    std::fs::write(directory.join(cpp11_path), cpp11_contents)?;
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .arg("format")
+        .arg(cpp11_path)
+        .arg("--force")
+        .arg("--check")
+        .run();
+    assert!(output.status.success());
+
+    Ok(())
+}
+
+#[test]
+fn test_force_overrides_default_excludes_with_stdin_write() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let cpp11_path = "cpp11.R";
+    let cpp11_contents = "1+1";
+
+    // `--force` overrides the `default-exclude` and actually formats the stdin content
+    insta::assert_snapshot!(
+        Command::new(binary_path())
+            .current_dir(directory)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg("format")
+            .arg("--stdin-file-path")
+            .arg(cpp11_path)
+            .arg("--force")
+            .run_with_stdin(cpp11_contents.to_string())
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_force_overrides_default_excludes_with_stdin_check() -> anyhow::Result<()> {
+    let directory = TempDir::new()?;
+    let directory = directory.path();
+
+    let cpp11_path = "cpp11.R";
+
+    // `--force --check` with stdin reports that formatting would change it
+    let cpp11_contents = "1+1\n";
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .arg("format")
+        .arg("--stdin-file-path")
+        .arg(cpp11_path)
+        .arg("--force")
+        .arg("--check")
+        .run_with_stdin(cpp11_contents.to_string());
+    assert!(!output.status.success());
+
+    // `--force --check` with stdin reports that formatting would not change it
+    let cpp11_contents = "1 + 1\n";
+    let output = Command::new(binary_path())
+        .current_dir(directory)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .arg("format")
+        .arg("--stdin-file-path")
+        .arg(cpp11_path)
+        .arg("--force")
+        .arg("--check")
+        .run_with_stdin(cpp11_contents.to_string());
+    assert!(output.status.success());
+
+    Ok(())
+}

@@ -1,0 +1,154 @@
+---
+source: crates/air_formatter_test/src/snapshot_builder.rs
+info: r/repeat_statement.R
+---
+# Input
+
+```R
+# Stays collapsed
+repeat {}
+
+repeat {
+  a + b
+}
+
+repeat 
+{
+  a + b  
+}
+
+# ------------------------------------------------------------------------------
+# Autobracing
+
+repeat 1
+
+repeat
+  1 + 1
+
+# ------------------------------------------------------------------------------
+# Comments
+
+repeat { # dangles {}
+}
+
+# These should be consistent
+repeat { # leads a
+  # leads a 2
+  a
+}
+repeat # leads a
+{
+  # leads a 2
+  a
+}
+
+repeat # dangles {}
+{}
+
+repeat # dangles {}
+{
+  # dangles {} 2
+}
+
+repeat
+# leads a
+{
+  a
+}
+
+# leads repeat
+repeat
+{
+  # leads a
+  a
+}
+
+repeat # leads a
+  a
+
+```
+
+
+=============================
+
+# Outputs
+
+## Output 1
+
+-----
+Indent style: Space
+Indent width: 2
+Line ending: LF
+Line width: 80
+Persistent line breaks: Respect
+Assignment style: Arrow
+Table: fcase, tribble
+-----
+
+```R
+# Stays collapsed
+repeat {}
+
+repeat {
+  a + b
+}
+
+repeat {
+  a + b
+}
+
+# ------------------------------------------------------------------------------
+# Autobracing
+
+repeat {
+  1
+}
+
+repeat {
+  1 + 1
+}
+
+# ------------------------------------------------------------------------------
+# Comments
+
+repeat {
+  # dangles {}
+}
+
+# These should be consistent
+repeat {
+  # leads a
+  # leads a 2
+  a
+}
+repeat {
+  # leads a
+  # leads a 2
+  a
+}
+
+repeat {
+  # dangles {}
+}
+
+repeat {
+  # dangles {}
+  # dangles {} 2
+}
+
+repeat {
+  # leads a
+  a
+}
+
+# leads repeat
+repeat {
+  # leads a
+  a
+}
+
+repeat {
+  # leads a
+  a
+}
+```

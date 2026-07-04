@@ -1,0 +1,194 @@
+{
+	"name": "air-vscode",
+	"displayName": "Air - R Language Support",
+	"description": "R formatter and language server",
+	"version": "0.26.0",
+	"publisher": "Posit",
+	"license": "MIT",
+	"homepage": "https://posit-dev.github.io/air",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/posit-dev/air.git"
+	},
+	"bugs": {
+		"url": "https://github.com/posit-dev/air/issues"
+	},
+	"keywords": [
+		"r",
+		"formatting"
+	],
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": [
+		"Formatters",
+		"Programming Languages"
+	],
+	"icon": "air.png",
+	"activationEvents": [
+		"onLanguage:r",
+		"workspaceContains:*.r",
+		"workspaceContains:*.R",
+		"workspaceContains:air.toml",
+		"workspaceContains:.air.toml",
+		"workspaceContains:DESCRIPTION",
+		"workspaceContains:*.Rproj"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "r",
+				"extensions": [
+					".R",
+					".r",
+					".Rprofile",
+					".rprofile"
+				],
+				"aliases": [
+					"R",
+					"r"
+				],
+				"filenames": [
+					"NAMESPACE"
+				]
+			}
+		],
+		"configuration": {
+			"properties": {
+				"air.logLevel": {
+					"default": null,
+					"markdownDescription": "Controls the log level of the language server.",
+					"enum": [
+						"error",
+						"warning",
+						"info",
+						"debug",
+						"trace"
+					],
+					"scope": "application",
+					"type": "string"
+				},
+				"air.dependencyLogLevels": {
+					"default": null,
+					"markdownDescription": "Controls the log level of the Rust crates that the language server depends on.",
+					"scope": "application",
+					"type": "string"
+				},
+				"air.syncFileSettingsWithClient": {
+					"default": true,
+					"markdownDescription": "Whether settings from air.toml files should be propagated to the client (the IDE).",
+					"scope": "application",
+					"type": "boolean"
+				},
+				"air.executableStrategy": {
+					"default": "bundled",
+					"markdownDescription": "Strategy used to locate the `air` executable.",
+					"enum": [
+						"bundled",
+						"environment",
+						"path"
+					],
+					"enumDescriptions": [
+						"Always use the bundled `air` executable.",
+						"Look for an `air` executable using the `PATH` environment variable, falling back to the bundled version.",
+						"Look for an `air` executable at the fixed path provided by `air.executablePath`."
+					],
+					"scope": "window",
+					"type": "string"
+				},
+				"air.executablePath": {
+					"default": null,
+					"markdownDescription": "The path to an `air` executable. Only utilized when `air.executableStrategy` is set to \"path\".",
+					"scope": "window",
+					"type": "string"
+				},
+				"air.addExecutableToTerminalPath": {
+					"default": true,
+					"markdownDescription": "Whether to add the directory containing the `air` executable resolved by `air.executableStrategy` to the `PATH` of integrated terminals. This ensures that `air` invoked in an integrated terminal matches `air` used by the editor.",
+					"scope": "window",
+					"type": "boolean"
+				}
+			}
+		},
+		"configurationDefaults": {
+			"[r]": {
+				"editor.defaultFormatter": "Posit.air-vscode"
+			}
+		},
+		"commands": [
+			{
+				"title": "Restart Server",
+				"category": "Air",
+				"command": "air.restart"
+			},
+			{
+				"title": "Initialize Workspace Folder",
+				"category": "Air",
+				"command": "air.workspaceFolderInitialization"
+			},
+			{
+				"title": "Format Workspace Folder",
+				"category": "Air",
+				"command": "air.workspaceFolderFormatting"
+			},
+			{
+				"title": "View Syntax Tree",
+				"category": "Air",
+				"command": "air.viewSyntaxTree"
+			},
+			{
+				"title": "View Format Tree",
+				"category": "Air",
+				"command": "air.viewFormatTree"
+			},
+			{
+				"title": "View File Representations",
+				"category": "Air",
+				"command": "air.viewFileRepresentations"
+			},
+			{
+				"title": "Save File Representations",
+				"category": "Air",
+				"command": "air.saveFileRepresentations"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run package",
+		"compile": "webpack",
+		"watch": "webpack --watch",
+		"package": "webpack --mode production --devtool hidden-source-map",
+		"compile-tests": "tsc -p . --outDir out",
+		"watch-tests": "tsc -p . -w --outDir out",
+		"pretest": "npm run compile-tests && npm run compile && npm run lint",
+		"lint": "eslint src",
+		"test": "vscode-test"
+	},
+	"dependencies": {
+		"@types/p-queue": "^3.1.0",
+		"adm-zip": "^0.5.16",
+		"fs-extra": "^11.1.1",
+		"p-queue": "npm:@esm2cjs/p-queue@^7.3.0",
+		"vscode-languageclient": "^9.0.1",
+		"which": "^4.0.0"
+	},
+	"devDependencies": {
+		"@types/adm-zip": "^0.5.6",
+		"@types/fs-extra": "^11.0.4",
+		"@types/mocha": "^10.0.9",
+		"@types/node": "20.x",
+		"@types/vscode": "^1.90.0",
+		"@types/which": "^3.0.4",
+		"@typescript-eslint/eslint-plugin": "^8.10.0",
+		"@typescript-eslint/parser": "^8.7.0",
+		"@vscode/test-cli": "^0.0.10",
+		"@vscode/test-electron": "^2.4.1",
+		"eslint": "^9.13.0",
+		"prettier": "^3.4.2",
+		"ts-loader": "^9.5.1",
+		"typescript": "^5.6.3",
+		"webpack": "^5.95.0",
+		"webpack-cli": "^5.1.4"
+	}
+}

@@ -1,0 +1,26 @@
+[package]
+name = "air_formatter_test"
+version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Air's formatter test shared infrastructure"
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+biome_formatter = { workspace = true }
+biome_parser = { workspace = true }
+biome_rowan = { workspace = true }
+insta = { workspace = true, features = ["glob"] }
+serde = { workspace = true, features = ["derive"] }
+similar-asserts = { workspace = true }
+
+[lints]
+workspace = true

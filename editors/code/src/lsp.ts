@@ -1,0 +1,259 @@
+import * as vscode from "vscode";
+import * as lc from "vscode-languageclient/node";
+import * as path from "path";
+import { default as PQueue } from "p-queue";
+import { getInitializationOptions, getWorkspaceSettings } from "./settings";
+import {
+	FileSettingsState,
+	SyncFileSettingsParams,
+} from "./notification/sync-file-settings";
+import { Middleware, ResponseError } from "vscode-languageclient/node";
+import { SYNC_FILE_SETTINGS } from "./notification/sync-file-settings";
+import { registerLogger } from "./output";
+import { resolveAirBinaryPath } from "./binary";
+import { getRootWorkspaceFolder } from "./workspace";
+
+// All session management operations are put on a queue. They can't run
+// concurrently and either result in a started or stopped state. Starting when
+// started is a noop, same for stopping when stopped. On the other hand
+// restarting is always scheduled.
+export enum State {
+	Started = "started",
+	Stopped = "stopped",
+}
+
+export interface StateChangeStarted {
+	state: State.Started;
+	binaryPath: string;
+	workspaceFolder: vscode.WorkspaceFolder;
+}
+export interface StateChangeStopped {
+	state: State.Stopped;
+}
+export type StateChange = StateChangeStarted | StateChangeStopped;
+
+export class Lsp {
+	private client: lc.LanguageClient | null = null;
+
+	private binaryPath: string | null = null;
+
+	public onStateChange: vscode.Event<StateChange>;
+	private onStateChangeEmitter: vscode.EventEmitter<StateChange>;
+
+	// We've received and processed an `air.toml` settings synchronization
+	// notification. Used to synchronize unit tests with the LSP.
+	private onSettingsNotification: vscode.Event<SyncFileSettingsParams>;
+
+	// We use the same output channel for all LSP instances (e.g. a new instance
+	// after a restart) to avoid having multiple channels in the Output viewpane.
+	private channel: vscode.OutputChannel;
+
+	private state = State.Stopped;
+	private stateQueue: PQueue;
+
+	private fileSettings: FileSettingsState;
+
+	private onSettingsNotificationEmitter: vscode.EventEmitter<SyncFileSettingsParams>;
+
+	constructor(context: vscode.ExtensionContext) {
+		this.channel = vscode.window.createOutputChannel("Air Language Server");
+		context.subscriptions.push(this.channel, registerLogger(this.channel));
+
+		this.stateQueue = new PQueue({ concurrency: 1 });
+		this.fileSettings = new FileSettingsState(context);
+
+		this.onStateChangeEmitter = new vscode.EventEmitter<StateChange>();
+		context.subscriptions.push(this.onStateChangeEmitter);
+		this.onStateChange = this.onStateChangeEmitter.event;
+
+		this.onSettingsNotificationEmitter =
+			new vscode.EventEmitter<SyncFileSettingsParams>();
+		context.subscriptions.push(this.onSettingsNotificationEmitter);
+
+		this.onSettingsNotification = this.onSettingsNotificationEmitter.event;
+
+		this.onSettingsNotification((settings) =>
+			this.fileSettings.handleSettingsNotification(settings),
+		);
+	}
+
+	public getClient(): lc.LanguageClient {
+		if (!this.client) {
+			throw new Error("LSP must be started");
+		}
+		return this.client;
+	}
+
+	public getBinaryPath(): string {
+		if (!this.binaryPath) {
+			throw new Error("LSP must be started");
+		}
+		return this.binaryPath;
+	}
+
+	public waitForSettingsNotification(): Promise<void> {
+		return new Promise((resolve, _) => {
+			const disposable = this.onSettingsNotification(() => {
+				disposable.dispose();
+				resolve();
+			});
+		});
+	}
+
+	public async start() {
+		await this.stateQueue.add(async () => await this.startImpl());
+	}
+
+	public async restart() {
+		await this.stateQueue.add(async () => await this.restartImpl());
+	}
+
+	public async stop() {
+		await this.stateQueue.add(async () => await this.stopImpl());
+	}
+
+	private async startImpl() {
+		// Noop if already started
+		if (this.state === State.Started) {
+			return;
+		}
+
+		const workspaceFolder = await getRootWorkspaceFolder();
+
+		const workspaceSettings = getWorkspaceSettings("air", workspaceFolder);
+		const initializationOptions = getInitializationOptions("air");
+
+		const binaryPath = await resolveAirBinaryPath(
+			workspaceSettings.executableStrategy,
+			workspaceSettings.executablePath,
+		);
+
+		let serverOptions: lc.ServerOptions = {
+			command: binaryPath,
+			args: ["language-server"],
+		};
+
+		// We need a middleware for `configuration` requests from the server
+		// because the LSP client does not query language-specific configuration.
+		// See https://github.com/microsoft/vscode-languageserver-node/issues/1043 and
+		// https://github.com/microsoft/vscode-languageserver-node/issues/1056.
+		let middleware: Middleware = {
+			workspace: {
+				configuration: async (params, token, next) => {
+					const items = await next(params, token);
+
+					if (items instanceof ResponseError) {
+						return items;
+					}
+
+					for (let i = 0; i < params.items.length; ++i) {
+						const item = params.items[i];
+
+						if (!item.section || !item.scopeUri) {
+							continue;
+						}
+
+						const uri = vscode.Uri.parse(item.scopeUri);
+
+						// We're expecting the document to be opened. But it
+						// could have been closed in the meantime. We need to be
+						// careful not to open it again to avoid a cascading
+						// chain of events with this middleware. So we don't
+						// call `openDocument()` here, we just look for an
+						// already opened one.
+						const document = vscode.workspace.textDocuments.find(
+							(document) => document.uri === uri,
+						);
+
+						// If there was no document, it means it was closed in
+						// the mean time. Nothing we can do here so use the global
+						// value we already pulled from `next()` above.
+						// Since the document is closed the scope should not matter.
+						if (!document) {
+							continue;
+						}
+
+						const languageId = document.languageId;
+
+						const config = vscode.workspace.getConfiguration(
+							undefined,
+							{
+								uri,
+								languageId,
+							},
+						);
+
+						items[i] = config.get(item.section);
+					}
+
+					return items;
+				},
+			},
+		};
+
+		let clientOptions: lc.LanguageClientOptions = {
+			// Look for unnamed scheme
+			documentSelector: [
+				{ language: "r", scheme: "untitled" },
+				{ language: "r", scheme: "file" },
+				{ language: "r", scheme: "vscode-notebook-cell" },
+				{ language: "r", pattern: "**/*.{r,R}" },
+				{ language: "r", pattern: "**/*.{rprofile,Rprofile}" },
+			],
+			outputChannel: this.channel,
+			initializationOptions: initializationOptions,
+			middleware,
+		};
+
+		const client = new lc.LanguageClient(
+			"airLanguageServer",
+			"Air Language Server",
+			serverOptions,
+			clientOptions,
+		);
+
+		client.onNotification(SYNC_FILE_SETTINGS, (settings) => {
+			this.onSettingsNotificationEmitter.fire(settings);
+		});
+
+		await client.start();
+
+		// Only update state if no error occurred
+		this.client = client;
+		this.binaryPath = binaryPath;
+		this.state = State.Started;
+		this.onStateChangeEmitter.fire({
+			state: this.state,
+			binaryPath: this.binaryPath,
+			workspaceFolder: workspaceFolder,
+		});
+	}
+
+	private async stopImpl() {
+		// Noop if already stopped
+		if (this.state === State.Stopped) {
+			return;
+		}
+
+		try {
+			await this.client?.stop();
+		} finally {
+			// We're always stopped even if an error happens. Hard to do better
+			// in that case, we just drop the client and hope an eventual restart
+			// will put us back in a good place.
+			this.state = State.Stopped;
+			this.client = null;
+			this.binaryPath = null;
+			this.onStateChangeEmitter.fire({
+				state: this.state,
+			});
+		}
+	}
+
+	private async restartImpl() {
+		if (this.state === State.Started) {
+			await this.stopImpl();
+		}
+		await this.startImpl();
+	}
+}

@@ -1,0 +1,95 @@
+use clap::Parser;
+use clap::Subcommand;
+use clap::builder::Styles;
+use clap::builder::styling::{AnsiColor, Effects};
+use std::path::PathBuf;
+
+use crate::logging;
+
+// Configures Clap v3-style help menu colors
+const STYLES: Styles = Styles::styled()
+    .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .placeholder(AnsiColor::Cyan.on_default());
+
+#[derive(Parser)]
+#[command(
+    author,
+    name = "air",
+    about = "Air: An R language server and formatter",
+    after_help = "For help with a specific command, see: `air help <command>`."
+)]
+#[command(version)]
+#[command(styles = STYLES)]
+pub struct Args {
+    #[command(subcommand)]
+    pub(crate) command: Command,
+
+    #[clap(flatten)]
+    pub(crate) global_options: GlobalOptions,
+}
+
+#[derive(Subcommand)]
+pub(crate) enum Command {
+    /// Format a set of files or directories
+    Format(FormatCommand),
+
+    /// Start a language server
+    LanguageServer(LanguageServerCommand),
+
+    /// Generate shell completion scripts
+    #[clap(hide = true)]
+    GenerateShellCompletion(GenerateShellCompletionCommand),
+}
+
+#[derive(Clone, Debug, Parser)]
+#[command(arg_required_else_help(true))]
+pub(crate) struct FormatCommand {
+    /// The files or directories to format
+    pub paths: Vec<PathBuf>,
+
+    /// If enabled, format results are not written back to the file. Instead,
+    /// exit with a non-zero status code if any files would have been modified,
+    /// and zero otherwise.
+    #[arg(long)]
+    pub check: bool,
+
+    /// Force formatting to occur regardless of exclusion patterns. This applies
+    /// recursively to directories. This serves as an escape hatch for cases like `air
+    /// format r-code.txt --force`, but is very rarely needed.
+    #[arg(long)]
+    pub force: bool,
+
+    /// Use this option to enable reading from stdin and writing to stdout. This specifies
+    /// a file path to associate the standard input with, which is used as the location to
+    /// begin searching for configuration files from. The file does not have to exist and
+    /// will not be read from. If a relative path is provided, it is resolved from the
+    /// current working directory. If this option is specified, no other files or
+    /// directories can be provided.
+    #[arg(long)]
+    pub stdin_file_path: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, Parser)]
+pub(crate) struct LanguageServerCommand {}
+
+#[derive(Clone, Debug, Parser)]
+pub(crate) struct GenerateShellCompletionCommand {
+    /// The shell for which to generate the completion script
+    pub shell: clap_complete::Shell,
+}
+
+/// All configuration options that can be passed "globally"
+#[derive(Debug, Default, clap::Args)]
+#[command(next_help_heading = "Global options")]
+pub(crate) struct GlobalOptions {
+    /// The log level [default: warn]
+    #[arg(long, global = true)]
+    pub(crate) log_level: Option<logging::LogLevel>,
+
+    /// Disable colored output. To turn colored output off, either set this option or set
+    /// the environment variable `NO_COLOR` to any non-zero value.
+    #[arg(long, global = true)]
+    pub(crate) no_color: bool,
+}

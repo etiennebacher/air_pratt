@@ -1,0 +1,26 @@
+---
+title: "Editor support"
+editor:
+  markdown:
+    wrap: sentence
+    canonical: true
+---
+
+Air provides excellent support for code editors that support the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/).
+Many do, including [Positron](https://positron.posit.co/), [VS Code](https://code.visualstudio.com/), and [Zed](https://zed.dev/).
+Air also provides some support for code editors that allow for external formatters, such as [RStudio](https://posit.co/products/open-source/rstudio/).
+Follow one of our editor specific guides to get set up with Air in your preferred editor:
+
+-   [VS Code](editor-vscode.qmd)
+
+-   [Positron](editor-vscode.qmd)
+
+-   [RStudio](editor-rstudio.qmd)
+
+-   [Zed](editor-zed.qmd)
+
+-   [Neovim](editor-neovim.qmd)
+
+-   [Helix](editor-helix.qmd)
+
+-   [Emacs](editor-emacs.qmd)

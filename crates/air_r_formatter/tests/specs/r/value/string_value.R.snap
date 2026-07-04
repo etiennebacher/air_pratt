@@ -1,0 +1,81 @@
+---
+source: crates/air_formatter_test/src/snapshot_builder.rs
+info: r/value/string_value.R
+---
+# Input
+
+```R
+"hi there!"
+"\""
+'hi there!'
+'\''
+"'"
+"multiline
+string"
+r"("some raw string
+business")"
+
+# ------------------------------------------------------------------------
+# Comments
+
+# comment
+"hi"
+
+"hi" # comment
+
+"hi"
+# comment
+
+" # not-a-comment
+hi"
+
+"hi # not-a-comment
+"
+
+```
+
+
+=============================
+
+# Outputs
+
+## Output 1
+
+-----
+Indent style: Space
+Indent width: 2
+Line ending: LF
+Line width: 80
+Persistent line breaks: Respect
+Assignment style: Arrow
+Table: fcase, tribble
+-----
+
+```R
+"hi there!"
+"\""
+'hi there!'
+'\''
+"'"
+"multiline
+string"
+r"("some raw string
+business")"
+
+# ------------------------------------------------------------------------
+# Comments
+
+# comment
+"hi"
+
+"hi" # comment
+
+"hi"
+# comment
+
+" # not-a-comment
+hi"
+
+"hi # not-a-comment
+"
+```

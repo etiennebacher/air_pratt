@@ -1,0 +1,39 @@
+name: "Test - windows"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    name: "Rust: stable"
+    strategy:
+      fail-fast: false
+    timeout-minutes: 30
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install rust toolchain (rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustup show
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: Build
+        run: cargo build
+
+      - name: Run tests
+        env:
+          NEXTEST_PROFILE: "ci"
+          AIR_LOG_LEVEL: trace
+        run: cargo nextest run

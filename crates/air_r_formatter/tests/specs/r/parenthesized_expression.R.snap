@@ -1,0 +1,76 @@
+---
+source: crates/air_formatter_test/src/snapshot_builder.rs
+info: r/parenthesized_expression.R
+---
+# Input
+
+```R
+(1)
+
+# Parentheses always tightly hug
+({ 1 + 1 })
+(function() { 1 + 1 })
+
+(fn(a, b, c))
+(fn_call_that_is_really_long(with_really_long, arguments_like_this, and_this_one_too))
+
+((1))
+
+# All comments enclosed by the parenthesized expression node should belong to
+# the `body` node inside the `()`. Note `comment5` here is not enclosed by the
+# parenthesized expression node so it stays where it is.
+( # comment1
+  # comment2
+  1 # comment3
+  # comment4
+) # comment5
+
+```
+
+
+=============================
+
+# Outputs
+
+## Output 1
+
+-----
+Indent style: Space
+Indent width: 2
+Line ending: LF
+Line width: 80
+Persistent line breaks: Respect
+Assignment style: Arrow
+Table: fcase, tribble
+-----
+
+```R
+(1)
+
+# Parentheses always tightly hug
+({
+  1 + 1
+})
+(function() {
+  1 + 1
+})
+
+(fn(a, b, c))
+(fn_call_that_is_really_long(
+  with_really_long,
+  arguments_like_this,
+  and_this_one_too
+))
+
+((1))
+
+# All comments enclosed by the parenthesized expression node should belong to
+# the `body` node inside the `()`. Note `comment5` here is not enclosed by the
+# parenthesized expression node so it stays where it is.
+(
+  # comment1
+  # comment2
+  1 # comment3
+  # comment4
+) # comment5
+```

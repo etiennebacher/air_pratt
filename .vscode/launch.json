@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach: air",
+      "type": "lldb",
+      "request": "attach",
+      "osx": {
+        "program": "air"
+      },
+      "windows": {
+        "program": "air.exe"
+      },
+      "sourceLanguages": ["rust"]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Unit tests: air",
+      "cargo": {
+        "args": ["test", "--no-run", "--package=air"],
+        "filter": {
+          "name": "air",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

@@ -1,0 +1,2679 @@
+---
+source: crates/air_r_parser/tests/snippets.rs
+expression: snapshot
+---
+""
+0: R_ROOT@0..0
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..0
+  2: EOF@0..0 "" [] []
+
+====================
+
+"\n\n"
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..0
+  2: EOF@0..2 "" [Newline("\n"), Newline("\n")] []
+
+====================
+
+"# just a comment"
+0: R_ROOT@0..16
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..0
+  2: EOF@0..16 "" [Comments("# just a comment")] []
+
+====================
+
+"# comment, no trailing newline"
+0: R_ROOT@0..30
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..0
+  2: EOF@0..30 "" [Comments("# comment, no trailin ...")] []
+
+====================
+
+"x"
+0: R_ROOT@0..1
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..1
+    0: R_IDENTIFIER@0..1
+      0: IDENT@0..1 "x" [] []
+  2: EOF@1..1 "" [] []
+
+====================
+
+"1;2"
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_DOUBLE_VALUE@0..1
+      0: R_DOUBLE_LITERAL@0..1 "1" [] []
+    1: R_DOUBLE_VALUE@1..3
+      0: R_DOUBLE_LITERAL@1..3 "2" [Whitespace(";")] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+"1 ; 2"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_DOUBLE_VALUE@0..1
+      0: R_DOUBLE_LITERAL@0..1 "1" [] []
+    1: R_DOUBLE_VALUE@1..5
+      0: R_DOUBLE_LITERAL@1..5 "2" [Whitespace(" ; ")] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"1;;2"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_DOUBLE_VALUE@0..1
+      0: R_DOUBLE_LITERAL@0..1 "1" [] []
+    1: R_DOUBLE_VALUE@1..4
+      0: R_DOUBLE_LITERAL@1..4 "2" [Whitespace(";;")] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+";x"
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..2
+    0: R_IDENTIFIER@0..2
+      0: IDENT@0..2 "x" [Whitespace(";")] []
+  2: EOF@2..2 "" [] []
+
+====================
+
+"1;"
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..1
+    0: R_DOUBLE_VALUE@0..1
+      0: R_DOUBLE_LITERAL@0..1 "1" [] []
+  2: EOF@1..2 "" [Whitespace(";")] []
+
+====================
+
+"{ 1; }"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BRACED_EXPRESSIONS@0..6
+      0: L_CURLY@0..1 "{" [] []
+      1: R_EXPRESSION_LIST@1..3
+        0: R_DOUBLE_VALUE@1..3
+          0: R_DOUBLE_LITERAL@1..3 "1" [Whitespace(" ")] []
+      2: R_CURLY@3..6 "}" [Whitespace("; ")] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"f(a;)" (parse error)
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_CALL@0..5
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..5
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..3
+          0: R_ARGUMENT@2..3
+            0: (empty)
+            1: R_IDENTIFIER@2..3
+              0: IDENT@2..3 "a" [] []
+        2: R_PAREN@3..5 ")" [Whitespace(";")] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"f(a; b)" (parse error)
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_BOGUS_EXPRESSION@0..3
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: L_PAREN@1..2 "(" [] []
+      2: R_ARGUMENT@2..3
+        0: (empty)
+        1: R_IDENTIFIER@2..3
+          0: IDENT@2..3 "a" [] []
+    1: R_IDENTIFIER@3..6
+      0: IDENT@3..6 "b" [Whitespace("; ")] []
+    2: R_BOGUS_EXPRESSION@6..7
+      0: R_PAREN@6..7 ")" [] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"(1;)" (parse error)
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_PARENTHESIZED_EXPRESSION@0..4
+      0: L_PAREN@0..1 "(" [] []
+      1: R_DOUBLE_VALUE@1..2
+        0: R_DOUBLE_LITERAL@1..2 "1" [] []
+      2: R_PAREN@2..4 ")" [Whitespace(";")] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"x$;y"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_EXTRACT_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: (empty)
+    1: R_IDENTIFIER@2..4
+      0: IDENT@2..4 "y" [Whitespace(";")] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"pkg::;name"
+0: R_ROOT@0..10
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..10
+    0: R_NAMESPACE_EXPRESSION@0..5
+      0: R_IDENTIFIER@0..3
+        0: IDENT@0..3 "pkg" [] []
+      1: COLON2@3..5 "::" [] []
+      2: (empty)
+    1: R_IDENTIFIER@5..10
+      0: IDENT@5..10 "name" [Whitespace(";")] []
+  2: EOF@10..10 "" [] []
+
+====================
+
+"x[[1]]"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_SUBSET2@0..6
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: R_SUBSET2_ARGUMENTS@1..6
+        0: L_BRACK2@1..3 "[[" [] []
+        1: R_ARGUMENT_LIST@3..4
+          0: R_ARGUMENT@3..4
+            0: (empty)
+            1: R_DOUBLE_VALUE@3..4
+              0: R_DOUBLE_LITERAL@3..4 "1" [] []
+        2: R_BRACK2@4..6 "]]" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"x[y[1]]"
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_SUBSET@0..7
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: R_SUBSET_ARGUMENTS@1..7
+        0: L_BRACK@1..2 "[" [] []
+        1: R_ARGUMENT_LIST@2..6
+          0: R_ARGUMENT@2..6
+            0: (empty)
+            1: R_SUBSET@2..6
+              0: R_IDENTIFIER@2..3
+                0: IDENT@2..3 "y" [] []
+              1: R_SUBSET_ARGUMENTS@3..6
+                0: L_BRACK@3..4 "[" [] []
+                1: R_ARGUMENT_LIST@4..5
+                  0: R_ARGUMENT@4..5
+                    0: (empty)
+                    1: R_DOUBLE_VALUE@4..5
+                      0: R_DOUBLE_LITERAL@4..5 "1" [] []
+                2: R_BRACK@5..6 "]" [] []
+        2: R_BRACK@6..7 "]" [] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"x[[1] ]" (parse error)
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_BOGUS_EXPRESSION@0..7
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: L_BRACK2@1..3 "[[" [] []
+      2: R_ARGUMENT_LIST@3..4
+        0: R_ARGUMENT@3..4
+          0: (empty)
+          1: R_DOUBLE_VALUE@3..4
+            0: R_DOUBLE_LITERAL@3..4 "1" [] []
+      3: R_BRACK@4..5 "]" [] []
+      4: R_BRACK@5..7 "]" [Whitespace(" ")] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"x[[y]][2]"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_SUBSET@0..9
+      0: R_SUBSET2@0..6
+        0: R_IDENTIFIER@0..1
+          0: IDENT@0..1 "x" [] []
+        1: R_SUBSET2_ARGUMENTS@1..6
+          0: L_BRACK2@1..3 "[[" [] []
+          1: R_ARGUMENT_LIST@3..4
+            0: R_ARGUMENT@3..4
+              0: (empty)
+              1: R_IDENTIFIER@3..4
+                0: IDENT@3..4 "y" [] []
+          2: R_BRACK2@4..6 "]]" [] []
+      1: R_SUBSET_ARGUMENTS@6..9
+        0: L_BRACK@6..7 "[" [] []
+        1: R_ARGUMENT_LIST@7..8
+          0: R_ARGUMENT@7..8
+            0: (empty)
+            1: R_DOUBLE_VALUE@7..8
+              0: R_DOUBLE_LITERAL@7..8 "2" [] []
+        2: R_BRACK@8..9 "]" [] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"a[b[[c]]]"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_SUBSET@0..9
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "a" [] []
+      1: R_SUBSET_ARGUMENTS@1..9
+        0: L_BRACK@1..2 "[" [] []
+        1: R_ARGUMENT_LIST@2..8
+          0: R_ARGUMENT@2..8
+            0: (empty)
+            1: R_SUBSET2@2..8
+              0: R_IDENTIFIER@2..3
+                0: IDENT@2..3 "b" [] []
+              1: R_SUBSET2_ARGUMENTS@3..8
+                0: L_BRACK2@3..5 "[[" [] []
+                1: R_ARGUMENT_LIST@5..6
+                  0: R_ARGUMENT@5..6
+                    0: (empty)
+                    1: R_IDENTIFIER@5..6
+                      0: IDENT@5..6 "c" [] []
+                2: R_BRACK2@6..8 "]]" [] []
+        2: R_BRACK@8..9 "]" [] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"l[[c(1,2)]]"
+0: R_ROOT@0..11
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..11
+    0: R_SUBSET2@0..11
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "l" [] []
+      1: R_SUBSET2_ARGUMENTS@1..11
+        0: L_BRACK2@1..3 "[[" [] []
+        1: R_ARGUMENT_LIST@3..9
+          0: R_ARGUMENT@3..9
+            0: (empty)
+            1: R_CALL@3..9
+              0: R_IDENTIFIER@3..4
+                0: IDENT@3..4 "c" [] []
+              1: R_CALL_ARGUMENTS@4..9
+                0: L_PAREN@4..5 "(" [] []
+                1: R_ARGUMENT_LIST@5..8
+                  0: R_ARGUMENT@5..6
+                    0: (empty)
+                    1: R_DOUBLE_VALUE@5..6
+                      0: R_DOUBLE_LITERAL@5..6 "1" [] []
+                  1: COMMA@6..7 "," [] []
+                  2: R_ARGUMENT@7..8
+                    0: (empty)
+                    1: R_DOUBLE_VALUE@7..8
+                      0: R_DOUBLE_LITERAL@7..8 "2" [] []
+                2: R_PAREN@8..9 ")" [] []
+        2: R_BRACK2@9..11 "]]" [] []
+  2: EOF@11..11 "" [] []
+
+====================
+
+"x[[" (parse error)
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_BOGUS_EXPRESSION@0..3
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: L_BRACK2@1..3 "[[" [] []
+      2: R_ARGUMENT_LIST@3..3
+  2: EOF@3..3 "" [] []
+
+====================
+
+"x[[a]" (parse error)
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_BOGUS_EXPRESSION@0..5
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: L_BRACK2@1..3 "[[" [] []
+      2: R_ARGUMENT_LIST@3..4
+        0: R_ARGUMENT@3..4
+          0: (empty)
+          1: R_IDENTIFIER@3..4
+            0: IDENT@3..4 "a" [] []
+      3: R_BRACK@4..5 "]" [] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"1\n+2"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_DOUBLE_VALUE@0..1
+      0: R_DOUBLE_LITERAL@0..1 "1" [] []
+    1: R_UNARY_EXPRESSION@1..4
+      0: PLUS@1..3 "+" [Newline("\n")] []
+      1: R_DOUBLE_VALUE@3..4
+        0: R_DOUBLE_LITERAL@3..4 "2" [] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"(1\n+2)"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_PARENTHESIZED_EXPRESSION@0..6
+      0: L_PAREN@0..1 "(" [] []
+      1: R_BINARY_EXPRESSION@1..5
+        0: R_DOUBLE_VALUE@1..2
+          0: R_DOUBLE_LITERAL@1..2 "1" [] []
+        1: PLUS@2..4 "+" [Newline("\n")] []
+        2: R_DOUBLE_VALUE@4..5
+          0: R_DOUBLE_LITERAL@4..5 "2" [] []
+      2: R_PAREN@5..6 ")" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"{1\n+2}"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BRACED_EXPRESSIONS@0..6
+      0: L_CURLY@0..1 "{" [] []
+      1: R_EXPRESSION_LIST@1..5
+        0: R_DOUBLE_VALUE@1..2
+          0: R_DOUBLE_LITERAL@1..2 "1" [] []
+        1: R_UNARY_EXPRESSION@2..5
+          0: PLUS@2..4 "+" [Newline("\n")] []
+          1: R_DOUBLE_VALUE@4..5
+            0: R_DOUBLE_LITERAL@4..5 "2" [] []
+      2: R_CURLY@5..6 "}" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"{(1\n+2)}"
+0: R_ROOT@0..8
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..8
+    0: R_BRACED_EXPRESSIONS@0..8
+      0: L_CURLY@0..1 "{" [] []
+      1: R_EXPRESSION_LIST@1..7
+        0: R_PARENTHESIZED_EXPRESSION@1..7
+          0: L_PAREN@1..2 "(" [] []
+          1: R_BINARY_EXPRESSION@2..6
+            0: R_DOUBLE_VALUE@2..3
+              0: R_DOUBLE_LITERAL@2..3 "1" [] []
+            1: PLUS@3..5 "+" [Newline("\n")] []
+            2: R_DOUBLE_VALUE@5..6
+              0: R_DOUBLE_LITERAL@5..6 "2" [] []
+          2: R_PAREN@6..7 ")" [] []
+      2: R_CURLY@7..8 "}" [] []
+  2: EOF@8..8 "" [] []
+
+====================
+
+"f(1\n+2)"
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_CALL@0..7
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..7
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..6
+          0: R_ARGUMENT@2..6
+            0: (empty)
+            1: R_BINARY_EXPRESSION@2..6
+              0: R_DOUBLE_VALUE@2..3
+                0: R_DOUBLE_LITERAL@2..3 "1" [] []
+              1: PLUS@3..5 "+" [Newline("\n")] []
+              2: R_DOUBLE_VALUE@5..6
+                0: R_DOUBLE_LITERAL@5..6 "2" [] []
+        2: R_PAREN@6..7 ")" [] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"x <-\n1"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BINARY_EXPRESSION@0..6
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: ASSIGN@1..4 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@4..6
+        0: R_DOUBLE_LITERAL@4..6 "1" [Newline("\n")] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"x\n<- 1" (parse error)
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_IDENTIFIER@0..1
+      0: IDENT@0..1 "x" [] []
+    1: R_BOGUS_EXPRESSION@1..6
+      0: ASSIGN@1..4 "<-" [Newline("\n")] []
+      1: R_DOUBLE_LITERAL@4..6 "1" [Whitespace(" ")] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"f\n(x)"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_IDENTIFIER@0..1
+      0: IDENT@0..1 "f" [] []
+    1: R_PARENTHESIZED_EXPRESSION@1..5
+      0: L_PAREN@1..3 "(" [Newline("\n")] []
+      1: R_IDENTIFIER@3..4
+        0: IDENT@3..4 "x" [] []
+      2: R_PAREN@4..5 ")" [] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"x$\ny"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_EXTRACT_EXPRESSION@0..4
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: R_IDENTIFIER@2..4
+        0: IDENT@2..4 "y" [Newline("\n")] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"x@\ny"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_EXTRACT_EXPRESSION@0..4
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: AT@1..2 "@" [] []
+      2: R_IDENTIFIER@2..4
+        0: IDENT@2..4 "y" [Newline("\n")] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"x$\n\ny"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_EXTRACT_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: (empty)
+    1: R_IDENTIFIER@2..5
+      0: IDENT@2..5 "y" [Newline("\n"), Newline("\n")] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"{\nx$\n\ny\n}"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_BRACED_EXPRESSIONS@0..9
+      0: L_CURLY@0..1 "{" [] []
+      1: R_EXPRESSION_LIST@1..7
+        0: R_EXTRACT_EXPRESSION@1..4
+          0: R_IDENTIFIER@1..3
+            0: IDENT@1..3 "x" [Newline("\n")] []
+          1: DOLLAR@3..4 "$" [] []
+          2: (empty)
+        1: R_IDENTIFIER@4..7
+          0: IDENT@4..7 "y" [Newline("\n"), Newline("\n")] []
+      2: R_CURLY@7..9 "}" [Newline("\n")] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"(x$\n\n\ny)"
+0: R_ROOT@0..8
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..8
+    0: R_PARENTHESIZED_EXPRESSION@0..8
+      0: L_PAREN@0..1 "(" [] []
+      1: R_EXTRACT_EXPRESSION@1..7
+        0: R_IDENTIFIER@1..2
+          0: IDENT@1..2 "x" [] []
+        1: DOLLAR@2..3 "$" [] []
+        2: R_IDENTIFIER@3..7
+          0: IDENT@3..7 "y" [Newline("\n"), Newline("\n"), Newline("\n")] []
+      2: R_PAREN@7..8 ")" [] []
+  2: EOF@8..8 "" [] []
+
+====================
+
+"x$ # c\ny"
+0: R_ROOT@0..8
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..8
+    0: R_EXTRACT_EXPRESSION@0..8
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..6 "$" [] [Whitespace(" "), Comments("# c")]
+      2: R_IDENTIFIER@6..8
+        0: IDENT@6..8 "y" [Newline("\n")] []
+  2: EOF@8..8 "" [] []
+
+====================
+
+"x$\n# c\ny"
+0: R_ROOT@0..8
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..8
+    0: R_EXTRACT_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: (empty)
+    1: R_IDENTIFIER@2..8
+      0: IDENT@2..8 "y" [Newline("\n"), Comments("# c"), Newline("\n")] []
+  2: EOF@8..8 "" [] []
+
+====================
+
+"x\r<- 1"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BINARY_EXPRESSION@0..6
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: ASSIGN@1..4 "<-" [Newline("\r")] []
+      2: R_DOUBLE_VALUE@4..6
+        0: R_DOUBLE_LITERAL@4..6 "1" [Whitespace(" ")] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"x$\r\ry"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_EXTRACT_EXPRESSION@0..5
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: R_IDENTIFIER@2..5
+        0: IDENT@2..5 "y" [Newline("\r"), Newline("\r")] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"x$\r\n\r\ny"
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_EXTRACT_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: (empty)
+    1: R_IDENTIFIER@2..7
+      0: IDENT@2..7 "y" [Newline("\r\n"), Newline("\r\n")] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"1 +\n\n2"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BINARY_EXPRESSION@0..6
+      0: R_DOUBLE_VALUE@0..1
+        0: R_DOUBLE_LITERAL@0..1 "1" [] []
+      1: PLUS@1..3 "+" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@3..6
+        0: R_DOUBLE_LITERAL@3..6 "2" [Newline("\n"), Newline("\n")] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"x <-\n\n1"
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_BINARY_EXPRESSION@0..7
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: ASSIGN@1..4 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@4..7
+        0: R_DOUBLE_LITERAL@4..7 "1" [Newline("\n"), Newline("\n")] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"if (c)\n\nx"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_IF_STATEMENT@0..9
+      0: IF_KW@0..2 "if" [] []
+      1: L_PAREN@2..4 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+      3: R_PAREN@5..6 ")" [] []
+      4: R_IDENTIFIER@6..9
+        0: IDENT@6..9 "x" [Newline("\n"), Newline("\n")] []
+      5: (empty)
+  2: EOF@9..9 "" [] []
+
+====================
+
+"A + ~B + C ~ D"
+0: R_ROOT@0..14
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..14
+    0: R_BINARY_EXPRESSION@0..14
+      0: R_BINARY_EXPRESSION@0..10
+        0: R_IDENTIFIER@0..1
+          0: IDENT@0..1 "A" [] []
+        1: PLUS@1..3 "+" [Whitespace(" ")] []
+        2: R_UNARY_EXPRESSION@3..10
+          0: TILDE@3..5 "~" [Whitespace(" ")] []
+          1: R_BINARY_EXPRESSION@5..10
+            0: R_IDENTIFIER@5..6
+              0: IDENT@5..6 "B" [] []
+            1: PLUS@6..8 "+" [Whitespace(" ")] []
+            2: R_IDENTIFIER@8..10
+              0: IDENT@8..10 "C" [Whitespace(" ")] []
+      1: TILDE@10..12 "~" [Whitespace(" ")] []
+      2: R_IDENTIFIER@12..14
+        0: IDENT@12..14 "D" [Whitespace(" ")] []
+  2: EOF@14..14 "" [] []
+
+====================
+
+"?x ? y"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BINARY_EXPRESSION@0..6
+      0: R_UNARY_EXPRESSION@0..2
+        0: WAT@0..1 "?" [] []
+        1: R_IDENTIFIER@1..2
+          0: IDENT@1..2 "x" [] []
+      1: WAT@2..4 "?" [Whitespace(" ")] []
+      2: R_IDENTIFIER@4..6
+        0: IDENT@4..6 "y" [Whitespace(" ")] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"if (c) x else y"
+0: R_ROOT@0..15
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..15
+    0: R_IF_STATEMENT@0..15
+      0: IF_KW@0..2 "if" [] []
+      1: L_PAREN@2..4 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+      3: R_PAREN@5..6 ")" [] []
+      4: R_IDENTIFIER@6..8
+        0: IDENT@6..8 "x" [Whitespace(" ")] []
+      5: R_ELSE_CLAUSE@8..15
+        0: ELSE_KW@8..13 "else" [Whitespace(" ")] []
+        1: R_IDENTIFIER@13..15
+          0: IDENT@13..15 "y" [Whitespace(" ")] []
+  2: EOF@15..15 "" [] []
+
+====================
+
+"if (c) x\nelse y"
+0: R_ROOT@0..15
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..15
+    0: R_IF_STATEMENT@0..8
+      0: IF_KW@0..2 "if" [] []
+      1: L_PAREN@2..4 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+      3: R_PAREN@5..6 ")" [] []
+      4: R_IDENTIFIER@6..8
+        0: IDENT@6..8 "x" [Whitespace(" ")] []
+      5: (empty)
+    1: R_IDENTIFIER@8..13
+      0: IDENT@8..13 "else" [Newline("\n")] []
+    2: R_IDENTIFIER@13..15
+      0: IDENT@13..15 "y" [Whitespace(" ")] []
+  2: EOF@15..15 "" [] []
+
+====================
+
+"{if (c) x\nelse y}"
+0: R_ROOT@0..17
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..17
+    0: R_BRACED_EXPRESSIONS@0..17
+      0: L_CURLY@0..1 "{" [] []
+      1: R_EXPRESSION_LIST@1..16
+        0: R_IF_STATEMENT@1..16
+          0: IF_KW@1..3 "if" [] []
+          1: L_PAREN@3..5 "(" [Whitespace(" ")] []
+          2: R_IDENTIFIER@5..6
+            0: IDENT@5..6 "c" [] []
+          3: R_PAREN@6..7 ")" [] []
+          4: R_IDENTIFIER@7..9
+            0: IDENT@7..9 "x" [Whitespace(" ")] []
+          5: R_ELSE_CLAUSE@9..16
+            0: ELSE_KW@9..14 "else" [Newline("\n")] []
+            1: R_IDENTIFIER@14..16
+              0: IDENT@14..16 "y" [Whitespace(" ")] []
+      2: R_CURLY@16..17 "}" [] []
+  2: EOF@17..17 "" [] []
+
+====================
+
+"(if (c) x\nelse y)"
+0: R_ROOT@0..17
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..17
+    0: R_PARENTHESIZED_EXPRESSION@0..17
+      0: L_PAREN@0..1 "(" [] []
+      1: R_IF_STATEMENT@1..16
+        0: IF_KW@1..3 "if" [] []
+        1: L_PAREN@3..5 "(" [Whitespace(" ")] []
+        2: R_IDENTIFIER@5..6
+          0: IDENT@5..6 "c" [] []
+        3: R_PAREN@6..7 ")" [] []
+        4: R_IDENTIFIER@7..9
+          0: IDENT@7..9 "x" [Whitespace(" ")] []
+        5: R_ELSE_CLAUSE@9..16
+          0: ELSE_KW@9..14 "else" [Newline("\n")] []
+          1: R_IDENTIFIER@14..16
+            0: IDENT@14..16 "y" [Whitespace(" ")] []
+      2: R_PAREN@16..17 ")" [] []
+  2: EOF@17..17 "" [] []
+
+====================
+
+"if (c) x; else y"
+0: R_ROOT@0..16
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..16
+    0: R_IF_STATEMENT@0..8
+      0: IF_KW@0..2 "if" [] []
+      1: L_PAREN@2..4 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+      3: R_PAREN@5..6 ")" [] []
+      4: R_IDENTIFIER@6..8
+        0: IDENT@6..8 "x" [Whitespace(" ")] []
+      5: (empty)
+    1: R_IDENTIFIER@8..14
+      0: IDENT@8..14 "else" [Whitespace("; ")] []
+    2: R_IDENTIFIER@14..16
+      0: IDENT@14..16 "y" [Whitespace(" ")] []
+  2: EOF@16..16 "" [] []
+
+====================
+
+"if (c) if (d) x else y"
+0: R_ROOT@0..22
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..22
+    0: R_IF_STATEMENT@0..22
+      0: IF_KW@0..2 "if" [] []
+      1: L_PAREN@2..4 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+      3: R_PAREN@5..6 ")" [] []
+      4: R_IF_STATEMENT@6..22
+        0: IF_KW@6..9 "if" [Whitespace(" ")] []
+        1: L_PAREN@9..11 "(" [Whitespace(" ")] []
+        2: R_IDENTIFIER@11..12
+          0: IDENT@11..12 "d" [] []
+        3: R_PAREN@12..13 ")" [] []
+        4: R_IDENTIFIER@13..15
+          0: IDENT@13..15 "x" [Whitespace(" ")] []
+        5: R_ELSE_CLAUSE@15..22
+          0: ELSE_KW@15..20 "else" [Whitespace(" ")] []
+          1: R_IDENTIFIER@20..22
+            0: IDENT@20..22 "y" [Whitespace(" ")] []
+      5: (empty)
+  2: EOF@22..22 "" [] []
+
+====================
+
+"if (c) x = 1"
+0: R_ROOT@0..12
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..12
+    0: R_IF_STATEMENT@0..12
+      0: IF_KW@0..2 "if" [] []
+      1: L_PAREN@2..4 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+      3: R_PAREN@5..6 ")" [] []
+      4: R_BINARY_EXPRESSION@6..12
+        0: R_IDENTIFIER@6..8
+          0: IDENT@6..8 "x" [Whitespace(" ")] []
+        1: EQUAL@8..10 "=" [Whitespace(" ")] []
+        2: R_DOUBLE_VALUE@10..12
+          0: R_DOUBLE_LITERAL@10..12 "1" [Whitespace(" ")] []
+      5: (empty)
+  2: EOF@12..12 "" [] []
+
+====================
+
+"if\n(c)\nx"
+0: R_ROOT@0..8
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..8
+    0: R_IF_STATEMENT@0..8
+      0: IF_KW@0..2 "if" [] []
+      1: L_PAREN@2..4 "(" [Newline("\n")] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+      3: R_PAREN@5..6 ")" [] []
+      4: R_IDENTIFIER@6..8
+        0: IDENT@6..8 "x" [Newline("\n")] []
+      5: (empty)
+  2: EOF@8..8 "" [] []
+
+====================
+
+"x$"
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..2
+    0: R_EXTRACT_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: (empty)
+  2: EOF@2..2 "" [] []
+
+====================
+
+"x@"
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..2
+    0: R_EXTRACT_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: AT@1..2 "@" [] []
+      2: (empty)
+  2: EOF@2..2 "" [] []
+
+====================
+
+"pkg::"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_NAMESPACE_EXPRESSION@0..5
+      0: R_IDENTIFIER@0..3
+        0: IDENT@0..3 "pkg" [] []
+      1: COLON2@3..5 "::" [] []
+      2: (empty)
+  2: EOF@5..5 "" [] []
+
+====================
+
+"x$ + 1"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BINARY_EXPRESSION@0..6
+      0: R_EXTRACT_EXPRESSION@0..2
+        0: R_IDENTIFIER@0..1
+          0: IDENT@0..1 "x" [] []
+        1: DOLLAR@1..2 "$" [] []
+        2: (empty)
+      1: PLUS@2..4 "+" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@4..6
+        0: R_DOUBLE_LITERAL@4..6 "1" [Whitespace(" ")] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"f()::x" (parse error)
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BOGUS_EXPRESSION@0..6
+      0: R_CALL@0..3
+        0: R_IDENTIFIER@0..1
+          0: IDENT@0..1 "f" [] []
+        1: R_CALL_ARGUMENTS@1..3
+          0: L_PAREN@1..2 "(" [] []
+          1: R_ARGUMENT_LIST@2..2
+          2: R_PAREN@2..3 ")" [] []
+      1: COLON2@3..5 "::" [] []
+      2: IDENT@5..6 "x" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"x$y::z" (parse error)
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BOGUS_EXPRESSION@0..6
+      0: R_EXTRACT_EXPRESSION@0..3
+        0: R_IDENTIFIER@0..1
+          0: IDENT@0..1 "x" [] []
+        1: DOLLAR@1..2 "$" [] []
+        2: R_IDENTIFIER@2..3
+          0: IDENT@2..3 "y" [] []
+      1: COLON2@3..5 "::" [] []
+      2: IDENT@5..6 "z" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"pkg:::\"name\""
+0: R_ROOT@0..12
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..12
+    0: R_NAMESPACE_EXPRESSION@0..12
+      0: R_IDENTIFIER@0..3
+        0: IDENT@0..3 "pkg" [] []
+      1: COLON3@3..6 ":::" [] []
+      2: R_STRING_VALUE@6..12
+        0: STRING_OPEN@6..7 "\"" [] []
+        1: STRING_CONTENT@7..11 "name" [] []
+        2: STRING_CLOSE@11..12 "\"" [] []
+  2: EOF@12..12 "" [] []
+
+====================
+
+"x$\"y\""
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_EXTRACT_EXPRESSION@0..5
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: R_STRING_VALUE@2..5
+        0: STRING_OPEN@2..3 "\"" [] []
+        1: STRING_CONTENT@3..4 "y" [] []
+        2: STRING_CLOSE@4..5 "\"" [] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"f()"
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_CALL@0..3
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..3
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..2
+        2: R_PAREN@2..3 ")" [] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+"f(,)"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_CALL@0..4
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..4
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..3
+          0: R_ARGUMENT@2..2
+            0: (empty)
+            1: (empty)
+          1: COMMA@2..3 "," [] []
+          2: R_ARGUMENT@3..3
+            0: (empty)
+            1: (empty)
+        2: R_PAREN@3..4 ")" [] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"f(,,)"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_CALL@0..5
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..5
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..4
+          0: R_ARGUMENT@2..2
+            0: (empty)
+            1: (empty)
+          1: COMMA@2..3 "," [] []
+          2: R_ARGUMENT@3..3
+            0: (empty)
+            1: (empty)
+          3: COMMA@3..4 "," [] []
+          4: R_ARGUMENT@4..4
+            0: (empty)
+            1: (empty)
+        2: R_PAREN@4..5 ")" [] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"f(a,)"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_CALL@0..5
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..5
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..4
+          0: R_ARGUMENT@2..3
+            0: (empty)
+            1: R_IDENTIFIER@2..3
+              0: IDENT@2..3 "a" [] []
+          1: COMMA@3..4 "," [] []
+          2: R_ARGUMENT@4..4
+            0: (empty)
+            1: (empty)
+        2: R_PAREN@4..5 ")" [] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"f(,,a,,b,,)"
+0: R_ROOT@0..11
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..11
+    0: R_CALL@0..11
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..11
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..10
+          0: R_ARGUMENT@2..2
+            0: (empty)
+            1: (empty)
+          1: COMMA@2..3 "," [] []
+          2: R_ARGUMENT@3..3
+            0: (empty)
+            1: (empty)
+          3: COMMA@3..4 "," [] []
+          4: R_ARGUMENT@4..5
+            0: (empty)
+            1: R_IDENTIFIER@4..5
+              0: IDENT@4..5 "a" [] []
+          5: COMMA@5..6 "," [] []
+          6: R_ARGUMENT@6..6
+            0: (empty)
+            1: (empty)
+          7: COMMA@6..7 "," [] []
+          8: R_ARGUMENT@7..8
+            0: (empty)
+            1: R_IDENTIFIER@7..8
+              0: IDENT@7..8 "b" [] []
+          9: COMMA@8..9 "," [] []
+          10: R_ARGUMENT@9..9
+            0: (empty)
+            1: (empty)
+          11: COMMA@9..10 "," [] []
+          12: R_ARGUMENT@10..10
+            0: (empty)
+            1: (empty)
+        2: R_PAREN@10..11 ")" [] []
+  2: EOF@11..11 "" [] []
+
+====================
+
+"f(a b)" (parse error)
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_BOGUS_EXPRESSION@0..6
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: L_PAREN@1..2 "(" [] []
+      2: R_ARGUMENT@2..3
+        0: (empty)
+        1: R_IDENTIFIER@2..3
+          0: IDENT@2..3 "a" [] []
+      3: IDENT@3..5 "b" [Whitespace(" ")] []
+      4: R_PAREN@5..6 ")" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"f(x = )"
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_CALL@0..7
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..7
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..5
+          0: R_ARGUMENT@2..5
+            0: R_ARGUMENT_NAME_CLAUSE@2..5
+              0: R_IDENTIFIER@2..3
+                0: IDENT@2..3 "x" [] []
+              1: EQUAL@3..5 "=" [Whitespace(" ")] []
+            1: (empty)
+        2: R_PAREN@5..7 ")" [Whitespace(" ")] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"f(x = 1)"
+0: R_ROOT@0..8
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..8
+    0: R_CALL@0..8
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..8
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..7
+          0: R_ARGUMENT@2..7
+            0: R_ARGUMENT_NAME_CLAUSE@2..5
+              0: R_IDENTIFIER@2..3
+                0: IDENT@2..3 "x" [] []
+              1: EQUAL@3..5 "=" [Whitespace(" ")] []
+            1: R_DOUBLE_VALUE@5..7
+              0: R_DOUBLE_LITERAL@5..7 "1" [Whitespace(" ")] []
+        2: R_PAREN@7..8 ")" [] []
+  2: EOF@8..8 "" [] []
+
+====================
+
+"f(\"x\" = 1)"
+0: R_ROOT@0..10
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..10
+    0: R_CALL@0..10
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..10
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..9
+          0: R_ARGUMENT@2..9
+            0: R_ARGUMENT_NAME_CLAUSE@2..7
+              0: R_STRING_VALUE@2..5
+                0: STRING_OPEN@2..3 "\"" [] []
+                1: STRING_CONTENT@3..4 "x" [] []
+                2: STRING_CLOSE@4..5 "\"" [] []
+              1: EQUAL@5..7 "=" [Whitespace(" ")] []
+            1: R_DOUBLE_VALUE@7..9
+              0: R_DOUBLE_LITERAL@7..9 "1" [Whitespace(" ")] []
+        2: R_PAREN@9..10 ")" [] []
+  2: EOF@10..10 "" [] []
+
+====================
+
+"f(NULL = 1)"
+0: R_ROOT@0..11
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..11
+    0: R_CALL@0..11
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..11
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..10
+          0: R_ARGUMENT@2..10
+            0: R_ARGUMENT_NAME_CLAUSE@2..8
+              0: R_NULL_EXPRESSION@2..6
+                0: NULL_KW@2..6 "NULL" [] []
+              1: EQUAL@6..8 "=" [Whitespace(" ")] []
+            1: R_DOUBLE_VALUE@8..10
+              0: R_DOUBLE_LITERAL@8..10 "1" [Whitespace(" ")] []
+        2: R_PAREN@10..11 ")" [] []
+  2: EOF@11..11 "" [] []
+
+====================
+
+"f(... = 1)"
+0: R_ROOT@0..10
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..10
+    0: R_CALL@0..10
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..10
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..9
+          0: R_ARGUMENT@2..9
+            0: R_ARGUMENT_NAME_CLAUSE@2..7
+              0: R_DOTS@2..5
+                0: DOTS@2..5 "..." [] []
+              1: EQUAL@5..7 "=" [Whitespace(" ")] []
+            1: R_DOUBLE_VALUE@7..9
+              0: R_DOUBLE_LITERAL@7..9 "1" [Whitespace(" ")] []
+        2: R_PAREN@9..10 ")" [] []
+  2: EOF@10..10 "" [] []
+
+====================
+
+"f(..1 = 1)"
+0: R_ROOT@0..10
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..10
+    0: R_CALL@0..10
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..10
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..9
+          0: R_ARGUMENT@2..9
+            0: R_ARGUMENT_NAME_CLAUSE@2..7
+              0: R_DOT_DOT_I@2..5
+                0: DOTDOTI@2..5 "..1" [] []
+              1: EQUAL@5..7 "=" [Whitespace(" ")] []
+            1: R_DOUBLE_VALUE@7..9
+              0: R_DOUBLE_LITERAL@7..9 "1" [Whitespace(" ")] []
+        2: R_PAREN@9..10 ")" [] []
+  2: EOF@10..10 "" [] []
+
+====================
+
+"f(a[1] = 2)"
+0: R_ROOT@0..11
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..11
+    0: R_CALL@0..11
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..11
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..10
+          0: R_ARGUMENT@2..10
+            0: (empty)
+            1: R_BINARY_EXPRESSION@2..10
+              0: R_SUBSET@2..6
+                0: R_IDENTIFIER@2..3
+                  0: IDENT@2..3 "a" [] []
+                1: R_SUBSET_ARGUMENTS@3..6
+                  0: L_BRACK@3..4 "[" [] []
+                  1: R_ARGUMENT_LIST@4..5
+                    0: R_ARGUMENT@4..5
+                      0: (empty)
+                      1: R_DOUBLE_VALUE@4..5
+                        0: R_DOUBLE_LITERAL@4..5 "1" [] []
+                  2: R_BRACK@5..6 "]" [] []
+              1: EQUAL@6..8 "=" [Whitespace(" ")] []
+              2: R_DOUBLE_VALUE@8..10
+                0: R_DOUBLE_LITERAL@8..10 "2" [Whitespace(" ")] []
+        2: R_PAREN@10..11 ")" [] []
+  2: EOF@11..11 "" [] []
+
+====================
+
+"x[, 1]"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_SUBSET@0..6
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: R_SUBSET_ARGUMENTS@1..6
+        0: L_BRACK@1..2 "[" [] []
+        1: R_ARGUMENT_LIST@2..5
+          0: R_ARGUMENT@2..2
+            0: (empty)
+            1: (empty)
+          1: COMMA@2..3 "," [] []
+          2: R_ARGUMENT@3..5
+            0: (empty)
+            1: R_DOUBLE_VALUE@3..5
+              0: R_DOUBLE_LITERAL@3..5 "1" [Whitespace(" ")] []
+        2: R_BRACK@5..6 "]" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"x[i = 1]"
+0: R_ROOT@0..8
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..8
+    0: R_SUBSET@0..8
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: R_SUBSET_ARGUMENTS@1..8
+        0: L_BRACK@1..2 "[" [] []
+        1: R_ARGUMENT_LIST@2..7
+          0: R_ARGUMENT@2..7
+            0: R_ARGUMENT_NAME_CLAUSE@2..5
+              0: R_IDENTIFIER@2..3
+                0: IDENT@2..3 "i" [] []
+              1: EQUAL@3..5 "=" [Whitespace(" ")] []
+            1: R_DOUBLE_VALUE@5..7
+              0: R_DOUBLE_LITERAL@5..7 "1" [Whitespace(" ")] []
+        2: R_BRACK@7..8 "]" [] []
+  2: EOF@8..8 "" [] []
+
+====================
+
+"x[[i, j]]"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_SUBSET2@0..9
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: R_SUBSET2_ARGUMENTS@1..9
+        0: L_BRACK2@1..3 "[[" [] []
+        1: R_ARGUMENT_LIST@3..7
+          0: R_ARGUMENT@3..4
+            0: (empty)
+            1: R_IDENTIFIER@3..4
+              0: IDENT@3..4 "i" [] []
+          1: COMMA@4..5 "," [] []
+          2: R_ARGUMENT@5..7
+            0: (empty)
+            1: R_IDENTIFIER@5..7
+              0: IDENT@5..7 "j" [Whitespace(" ")] []
+        2: R_BRACK2@7..9 "]]" [] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"\\(x) x"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_FUNCTION_DEFINITION@0..6
+      0: BACKSLASH@0..1 "\\" [] []
+      1: R_PARAMETERS@1..4
+        0: L_PAREN@1..2 "(" [] []
+        1: R_PARAMETER_LIST@2..3
+          0: R_PARAMETER@2..3
+            0: R_IDENTIFIER@2..3
+              0: IDENT@2..3 "x" [] []
+            1: (empty)
+        2: R_PAREN@3..4 ")" [] []
+      2: R_IDENTIFIER@4..6
+        0: IDENT@4..6 "x" [Whitespace(" ")] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"function() 1"
+0: R_ROOT@0..12
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..12
+    0: R_FUNCTION_DEFINITION@0..12
+      0: FUNCTION_KW@0..8 "function" [] []
+      1: R_PARAMETERS@8..10
+        0: L_PAREN@8..9 "(" [] []
+        1: R_PARAMETER_LIST@9..9
+        2: R_PAREN@9..10 ")" [] []
+      2: R_DOUBLE_VALUE@10..12
+        0: R_DOUBLE_LITERAL@10..12 "1" [Whitespace(" ")] []
+  2: EOF@12..12 "" [] []
+
+====================
+
+"function(x, y = 1) x + y"
+0: R_ROOT@0..24
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..24
+    0: R_FUNCTION_DEFINITION@0..24
+      0: FUNCTION_KW@0..8 "function" [] []
+      1: R_PARAMETERS@8..18
+        0: L_PAREN@8..9 "(" [] []
+        1: R_PARAMETER_LIST@9..17
+          0: R_PARAMETER@9..10
+            0: R_IDENTIFIER@9..10
+              0: IDENT@9..10 "x" [] []
+            1: (empty)
+          1: COMMA@10..11 "," [] []
+          2: R_PARAMETER@11..17
+            0: R_IDENTIFIER@11..13
+              0: IDENT@11..13 "y" [Whitespace(" ")] []
+            1: R_PARAMETER_DEFAULT@13..17
+              0: EQUAL@13..15 "=" [Whitespace(" ")] []
+              1: R_DOUBLE_VALUE@15..17
+                0: R_DOUBLE_LITERAL@15..17 "1" [Whitespace(" ")] []
+        2: R_PAREN@17..18 ")" [] []
+      2: R_BINARY_EXPRESSION@18..24
+        0: R_IDENTIFIER@18..20
+          0: IDENT@18..20 "x" [Whitespace(" ")] []
+        1: PLUS@20..22 "+" [Whitespace(" ")] []
+        2: R_IDENTIFIER@22..24
+          0: IDENT@22..24 "y" [Whitespace(" ")] []
+  2: EOF@24..24 "" [] []
+
+====================
+
+"function(x,)" (parse error)
+0: R_ROOT@0..12
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..12
+    0: R_BOGUS_EXPRESSION@0..12
+      0: FUNCTION_KW@0..8 "function" [] []
+      1: L_PAREN@8..9 "(" [] []
+      2: R_PARAMETER@9..10
+        0: R_IDENTIFIER@9..10
+          0: IDENT@9..10 "x" [] []
+        1: (empty)
+      3: COMMA@10..11 "," [] []
+      4: R_PAREN@11..12 ")" [] []
+  2: EOF@12..12 "" [] []
+
+====================
+
+"function(...) 1"
+0: R_ROOT@0..15
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..15
+    0: R_FUNCTION_DEFINITION@0..15
+      0: FUNCTION_KW@0..8 "function" [] []
+      1: R_PARAMETERS@8..13
+        0: L_PAREN@8..9 "(" [] []
+        1: R_PARAMETER_LIST@9..12
+          0: R_PARAMETER@9..12
+            0: R_DOTS@9..12
+              0: DOTS@9..12 "..." [] []
+            1: (empty)
+        2: R_PAREN@12..13 ")" [] []
+      2: R_DOUBLE_VALUE@13..15
+        0: R_DOUBLE_LITERAL@13..15 "1" [Whitespace(" ")] []
+  2: EOF@15..15 "" [] []
+
+====================
+
+"function(x = c(1, 2)) x"
+0: R_ROOT@0..23
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..23
+    0: R_FUNCTION_DEFINITION@0..23
+      0: FUNCTION_KW@0..8 "function" [] []
+      1: R_PARAMETERS@8..21
+        0: L_PAREN@8..9 "(" [] []
+        1: R_PARAMETER_LIST@9..20
+          0: R_PARAMETER@9..20
+            0: R_IDENTIFIER@9..10
+              0: IDENT@9..10 "x" [] []
+            1: R_PARAMETER_DEFAULT@10..20
+              0: EQUAL@10..12 "=" [Whitespace(" ")] []
+              1: R_CALL@12..20
+                0: R_IDENTIFIER@12..14
+                  0: IDENT@12..14 "c" [Whitespace(" ")] []
+                1: R_CALL_ARGUMENTS@14..20
+                  0: L_PAREN@14..15 "(" [] []
+                  1: R_ARGUMENT_LIST@15..19
+                    0: R_ARGUMENT@15..16
+                      0: (empty)
+                      1: R_DOUBLE_VALUE@15..16
+                        0: R_DOUBLE_LITERAL@15..16 "1" [] []
+                    1: COMMA@16..17 "," [] []
+                    2: R_ARGUMENT@17..19
+                      0: (empty)
+                      1: R_DOUBLE_VALUE@17..19
+                        0: R_DOUBLE_LITERAL@17..19 "2" [Whitespace(" ")] []
+                  2: R_PAREN@19..20 ")" [] []
+        2: R_PAREN@20..21 ")" [] []
+      2: R_IDENTIFIER@21..23
+        0: IDENT@21..23 "x" [Whitespace(" ")] []
+  2: EOF@23..23 "" [] []
+
+====================
+
+"-x^2"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_UNARY_EXPRESSION@0..4
+      0: MINUS@0..1 "-" [] []
+      1: R_BINARY_EXPRESSION@1..4
+        0: R_IDENTIFIER@1..2
+          0: IDENT@1..2 "x" [] []
+        1: EXPONENTIATE@2..3 "^" [] []
+        2: R_DOUBLE_VALUE@3..4
+          0: R_DOUBLE_LITERAL@3..4 "2" [] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"-x*y"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_BINARY_EXPRESSION@0..4
+      0: R_UNARY_EXPRESSION@0..2
+        0: MINUS@0..1 "-" [] []
+        1: R_IDENTIFIER@1..2
+          0: IDENT@1..2 "x" [] []
+      1: MULTIPLY@2..3 "*" [] []
+      2: R_IDENTIFIER@3..4
+        0: IDENT@3..4 "y" [] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"a <- b <- c"
+0: R_ROOT@0..11
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..11
+    0: R_BINARY_EXPRESSION@0..11
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "a" [] []
+      1: ASSIGN@1..4 "<-" [Whitespace(" ")] []
+      2: R_BINARY_EXPRESSION@4..11
+        0: R_IDENTIFIER@4..6
+          0: IDENT@4..6 "b" [Whitespace(" ")] []
+        1: ASSIGN@6..9 "<-" [Whitespace(" ")] []
+        2: R_IDENTIFIER@9..11
+          0: IDENT@9..11 "c" [Whitespace(" ")] []
+  2: EOF@11..11 "" [] []
+
+====================
+
+"a -> b -> c"
+0: R_ROOT@0..11
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..11
+    0: R_BINARY_EXPRESSION@0..11
+      0: R_BINARY_EXPRESSION@0..6
+        0: R_IDENTIFIER@0..1
+          0: IDENT@0..1 "a" [] []
+        1: ASSIGN_RIGHT@1..4 "->" [Whitespace(" ")] []
+        2: R_IDENTIFIER@4..6
+          0: IDENT@4..6 "b" [Whitespace(" ")] []
+      1: ASSIGN_RIGHT@6..9 "->" [Whitespace(" ")] []
+      2: R_IDENTIFIER@9..11
+        0: IDENT@9..11 "c" [Whitespace(" ")] []
+  2: EOF@11..11 "" [] []
+
+====================
+
+"a ^ b ^ c"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_BINARY_EXPRESSION@0..9
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "a" [] []
+      1: EXPONENTIATE@1..3 "^" [Whitespace(" ")] []
+      2: R_BINARY_EXPRESSION@3..9
+        0: R_IDENTIFIER@3..5
+          0: IDENT@3..5 "b" [Whitespace(" ")] []
+        1: EXPONENTIATE@5..7 "^" [Whitespace(" ")] []
+        2: R_IDENTIFIER@7..9
+          0: IDENT@7..9 "c" [Whitespace(" ")] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"2--3"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_BINARY_EXPRESSION@0..4
+      0: R_DOUBLE_VALUE@0..1
+        0: R_DOUBLE_LITERAL@0..1 "2" [] []
+      1: MINUS@1..2 "-" [] []
+      2: R_UNARY_EXPRESSION@2..4
+        0: MINUS@2..3 "-" [] []
+        1: R_DOUBLE_VALUE@3..4
+          0: R_DOUBLE_LITERAL@3..4 "3" [] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"!a == b"
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_UNARY_EXPRESSION@0..7
+      0: BANG@0..1 "!" [] []
+      1: R_BINARY_EXPRESSION@1..7
+        0: R_IDENTIFIER@1..2
+          0: IDENT@1..2 "a" [] []
+        1: EQUAL2@2..5 "==" [Whitespace(" ")] []
+        2: R_IDENTIFIER@5..7
+          0: IDENT@5..7 "b" [Whitespace(" ")] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"~x + y"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_UNARY_EXPRESSION@0..6
+      0: TILDE@0..1 "~" [] []
+      1: R_BINARY_EXPRESSION@1..6
+        0: R_IDENTIFIER@1..2
+          0: IDENT@1..2 "x" [] []
+        1: PLUS@2..4 "+" [Whitespace(" ")] []
+        2: R_IDENTIFIER@4..6
+          0: IDENT@4..6 "y" [Whitespace(" ")] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"?mean"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_UNARY_EXPRESSION@0..5
+      0: WAT@0..1 "?" [] []
+      1: R_IDENTIFIER@1..5
+        0: IDENT@1..5 "mean" [] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"x ? y"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_BINARY_EXPRESSION@0..5
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: WAT@1..3 "?" [Whitespace(" ")] []
+      2: R_IDENTIFIER@3..5
+        0: IDENT@3..5 "y" [Whitespace(" ")] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"a:b:c"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_BINARY_EXPRESSION@0..5
+      0: R_BINARY_EXPRESSION@0..3
+        0: R_IDENTIFIER@0..1
+          0: IDENT@0..1 "a" [] []
+        1: COLON@1..2 ":" [] []
+        2: R_IDENTIFIER@2..3
+          0: IDENT@2..3 "b" [] []
+      1: COLON@3..4 ":" [] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"x |> f() |> g()"
+0: R_ROOT@0..15
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..15
+    0: R_BINARY_EXPRESSION@0..15
+      0: R_BINARY_EXPRESSION@0..8
+        0: R_IDENTIFIER@0..1
+          0: IDENT@0..1 "x" [] []
+        1: PIPE@1..4 "|>" [Whitespace(" ")] []
+        2: R_CALL@4..8
+          0: R_IDENTIFIER@4..6
+            0: IDENT@4..6 "f" [Whitespace(" ")] []
+          1: R_CALL_ARGUMENTS@6..8
+            0: L_PAREN@6..7 "(" [] []
+            1: R_ARGUMENT_LIST@7..7
+            2: R_PAREN@7..8 ")" [] []
+      1: PIPE@8..11 "|>" [Whitespace(" ")] []
+      2: R_CALL@11..15
+        0: R_IDENTIFIER@11..13
+          0: IDENT@11..13 "g" [Whitespace(" ")] []
+        1: R_CALL_ARGUMENTS@13..15
+          0: L_PAREN@13..14 "(" [] []
+          1: R_ARGUMENT_LIST@14..14
+          2: R_PAREN@14..15 ")" [] []
+  2: EOF@15..15 "" [] []
+
+====================
+
+"a %in% b %o% c"
+0: R_ROOT@0..14
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..14
+    0: R_BINARY_EXPRESSION@0..14
+      0: R_BINARY_EXPRESSION@0..8
+        0: R_IDENTIFIER@0..1
+          0: IDENT@0..1 "a" [] []
+        1: SPECIAL@1..6 "%in%" [Whitespace(" ")] []
+        2: R_IDENTIFIER@6..8
+          0: IDENT@6..8 "b" [Whitespace(" ")] []
+      1: SPECIAL@8..12 "%o%" [Whitespace(" ")] []
+      2: R_IDENTIFIER@12..14
+        0: IDENT@12..14 "c" [Whitespace(" ")] []
+  2: EOF@14..14 "" [] []
+
+====================
+
+"function(x) x |> f()"
+0: R_ROOT@0..20
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..20
+    0: R_FUNCTION_DEFINITION@0..20
+      0: FUNCTION_KW@0..8 "function" [] []
+      1: R_PARAMETERS@8..11
+        0: L_PAREN@8..9 "(" [] []
+        1: R_PARAMETER_LIST@9..10
+          0: R_PARAMETER@9..10
+            0: R_IDENTIFIER@9..10
+              0: IDENT@9..10 "x" [] []
+            1: (empty)
+        2: R_PAREN@10..11 ")" [] []
+      2: R_BINARY_EXPRESSION@11..20
+        0: R_IDENTIFIER@11..13
+          0: IDENT@11..13 "x" [Whitespace(" ")] []
+        1: PIPE@13..16 "|>" [Whitespace(" ")] []
+        2: R_CALL@16..20
+          0: R_IDENTIFIER@16..18
+            0: IDENT@16..18 "f" [Whitespace(" ")] []
+          1: R_CALL_ARGUMENTS@18..20
+            0: L_PAREN@18..19 "(" [] []
+            1: R_ARGUMENT_LIST@19..19
+            2: R_PAREN@19..20 ")" [] []
+  2: EOF@20..20 "" [] []
+
+====================
+
+"function(x) x ? y"
+0: R_ROOT@0..17
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..17
+    0: R_BINARY_EXPRESSION@0..17
+      0: R_FUNCTION_DEFINITION@0..13
+        0: FUNCTION_KW@0..8 "function" [] []
+        1: R_PARAMETERS@8..11
+          0: L_PAREN@8..9 "(" [] []
+          1: R_PARAMETER_LIST@9..10
+            0: R_PARAMETER@9..10
+              0: R_IDENTIFIER@9..10
+                0: IDENT@9..10 "x" [] []
+              1: (empty)
+          2: R_PAREN@10..11 ")" [] []
+        2: R_IDENTIFIER@11..13
+          0: IDENT@11..13 "x" [Whitespace(" ")] []
+      1: WAT@13..15 "?" [Whitespace(" ")] []
+      2: R_IDENTIFIER@15..17
+        0: IDENT@15..17 "y" [Whitespace(" ")] []
+  2: EOF@17..17 "" [] []
+
+====================
+
+"if (c) x <- 1"
+0: R_ROOT@0..13
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..13
+    0: R_IF_STATEMENT@0..13
+      0: IF_KW@0..2 "if" [] []
+      1: L_PAREN@2..4 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+      3: R_PAREN@5..6 ")" [] []
+      4: R_BINARY_EXPRESSION@6..13
+        0: R_IDENTIFIER@6..8
+          0: IDENT@6..8 "x" [Whitespace(" ")] []
+        1: ASSIGN@8..11 "<-" [Whitespace(" ")] []
+        2: R_DOUBLE_VALUE@11..13
+          0: R_DOUBLE_LITERAL@11..13 "1" [Whitespace(" ")] []
+      5: (empty)
+  2: EOF@13..13 "" [] []
+
+====================
+
+"while (c) x <- 1"
+0: R_ROOT@0..16
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..16
+    0: R_WHILE_STATEMENT@0..16
+      0: WHILE_KW@0..5 "while" [] []
+      1: L_PAREN@5..7 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@7..8
+        0: IDENT@7..8 "c" [] []
+      3: R_PAREN@8..9 ")" [] []
+      4: R_BINARY_EXPRESSION@9..16
+        0: R_IDENTIFIER@9..11
+          0: IDENT@9..11 "x" [Whitespace(" ")] []
+        1: ASSIGN@11..14 "<-" [Whitespace(" ")] []
+        2: R_DOUBLE_VALUE@14..16
+          0: R_DOUBLE_LITERAL@14..16 "1" [Whitespace(" ")] []
+  2: EOF@16..16 "" [] []
+
+====================
+
+"repeat x"
+0: R_ROOT@0..8
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..8
+    0: R_REPEAT_STATEMENT@0..8
+      0: REPEAT_KW@0..6 "repeat" [] []
+      1: R_IDENTIFIER@6..8
+        0: IDENT@6..8 "x" [Whitespace(" ")] []
+  2: EOF@8..8 "" [] []
+
+====================
+
+"for (i in 1:10) print(i)"
+0: R_ROOT@0..24
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..24
+    0: R_FOR_STATEMENT@0..24
+      0: FOR_KW@0..3 "for" [] []
+      1: L_PAREN@3..5 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@5..6
+        0: IDENT@5..6 "i" [] []
+      3: IN_KW@6..9 "in" [Whitespace(" ")] []
+      4: R_BINARY_EXPRESSION@9..14
+        0: R_DOUBLE_VALUE@9..11
+          0: R_DOUBLE_LITERAL@9..11 "1" [Whitespace(" ")] []
+        1: COLON@11..12 ":" [] []
+        2: R_DOUBLE_VALUE@12..14
+          0: R_DOUBLE_LITERAL@12..14 "10" [] []
+      5: R_PAREN@14..15 ")" [] []
+      6: R_CALL@15..24
+        0: R_IDENTIFIER@15..21
+          0: IDENT@15..21 "print" [Whitespace(" ")] []
+        1: R_CALL_ARGUMENTS@21..24
+          0: L_PAREN@21..22 "(" [] []
+          1: R_ARGUMENT_LIST@22..23
+            0: R_ARGUMENT@22..23
+              0: (empty)
+              1: R_IDENTIFIER@22..23
+                0: IDENT@22..23 "i" [] []
+          2: R_PAREN@23..24 ")" [] []
+  2: EOF@24..24 "" [] []
+
+====================
+
+"else <- 1"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_BINARY_EXPRESSION@0..9
+      0: R_IDENTIFIER@0..4
+        0: IDENT@0..4 "else" [] []
+      1: ASSIGN@4..7 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@7..9
+        0: R_DOUBLE_LITERAL@7..9 "1" [Whitespace(" ")] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"in <- 1"
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_BINARY_EXPRESSION@0..7
+      0: R_IDENTIFIER@0..2
+        0: IDENT@0..2 "in" [] []
+      1: ASSIGN@2..5 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@5..7
+        0: R_DOUBLE_LITERAL@5..7 "1" [Whitespace(" ")] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"elsewhere"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_IDENTIFIER@0..9
+      0: IDENT@0..9 "elsewhere" [] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"else_idx <- 1"
+0: R_ROOT@0..13
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..13
+    0: R_BINARY_EXPRESSION@0..13
+      0: R_IDENTIFIER@0..8
+        0: IDENT@0..8 "else_idx" [] []
+      1: ASSIGN@8..11 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@11..13
+        0: R_DOUBLE_LITERAL@11..13 "1" [Whitespace(" ")] []
+  2: EOF@13..13 "" [] []
+
+====================
+
+"x$else"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_EXTRACT_EXPRESSION@0..6
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: R_IDENTIFIER@2..6
+        0: IDENT@2..6 "else" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"x$in"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_EXTRACT_EXPRESSION@0..4
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: R_IDENTIFIER@2..4
+        0: IDENT@2..4 "in" [] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"x$TRUE"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_EXTRACT_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: (empty)
+    1: R_TRUE_EXPRESSION@2..6
+      0: TRUE_KW@2..6 "TRUE" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"x$if" (parse error)
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_EXTRACT_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: (empty)
+    1: R_BOGUS_EXPRESSION@2..4
+      0: IF_KW@2..4 "if" [] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"x$function" (parse error)
+0: R_ROOT@0..10
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..10
+    0: R_EXTRACT_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: DOLLAR@1..2 "$" [] []
+      2: (empty)
+    1: R_BOGUS_EXPRESSION@2..10
+      0: FUNCTION_KW@2..10 "function" [] []
+  2: EOF@10..10 "" [] []
+
+====================
+
+"pkg::else"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_NAMESPACE_EXPRESSION@0..9
+      0: R_IDENTIFIER@0..3
+        0: IDENT@0..3 "pkg" [] []
+      1: COLON2@3..5 "::" [] []
+      2: R_IDENTIFIER@5..9
+        0: IDENT@5..9 "else" [] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"function(if) 1"
+0: R_ROOT@0..14
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..14
+    0: R_FUNCTION_DEFINITION@0..14
+      0: FUNCTION_KW@0..8 "function" [] []
+      1: R_PARAMETERS@8..12
+        0: L_PAREN@8..9 "(" [] []
+        1: R_PARAMETER_LIST@9..11
+          0: R_PARAMETER@9..11
+            0: R_IDENTIFIER@9..11
+              0: IDENT@9..11 "if" [] []
+            1: (empty)
+        2: R_PAREN@11..12 ")" [] []
+      2: R_DOUBLE_VALUE@12..14
+        0: R_DOUBLE_LITERAL@12..14 "1" [Whitespace(" ")] []
+  2: EOF@14..14 "" [] []
+
+====================
+
+"function(else) 1"
+0: R_ROOT@0..16
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..16
+    0: R_FUNCTION_DEFINITION@0..16
+      0: FUNCTION_KW@0..8 "function" [] []
+      1: R_PARAMETERS@8..14
+        0: L_PAREN@8..9 "(" [] []
+        1: R_PARAMETER_LIST@9..13
+          0: R_PARAMETER@9..13
+            0: R_IDENTIFIER@9..13
+              0: IDENT@9..13 "else" [] []
+            1: (empty)
+        2: R_PAREN@13..14 ")" [] []
+      2: R_DOUBLE_VALUE@14..16
+        0: R_DOUBLE_LITERAL@14..16 "1" [Whitespace(" ")] []
+  2: EOF@16..16 "" [] []
+
+====================
+
+"function(TRUE) 1"
+0: R_ROOT@0..16
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..16
+    0: R_FUNCTION_DEFINITION@0..16
+      0: FUNCTION_KW@0..8 "function" [] []
+      1: R_PARAMETERS@8..14
+        0: L_PAREN@8..9 "(" [] []
+        1: R_PARAMETER_LIST@9..13
+          0: R_PARAMETER@9..13
+            0: R_IDENTIFIER@9..13
+              0: IDENT@9..13 "TRUE" [] []
+            1: (empty)
+        2: R_PAREN@13..14 ")" [] []
+      2: R_DOUBLE_VALUE@14..16
+        0: R_DOUBLE_LITERAL@14..16 "1" [Whitespace(" ")] []
+  2: EOF@16..16 "" [] []
+
+====================
+
+"for (function in x) 1"
+0: R_ROOT@0..21
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..21
+    0: R_FOR_STATEMENT@0..21
+      0: FOR_KW@0..3 "for" [] []
+      1: L_PAREN@3..5 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@5..13
+        0: IDENT@5..13 "function" [] []
+      3: IN_KW@13..16 "in" [Whitespace(" ")] []
+      4: R_IDENTIFIER@16..18
+        0: IDENT@16..18 "x" [Whitespace(" ")] []
+      5: R_PAREN@18..19 ")" [] []
+      6: R_DOUBLE_VALUE@19..21
+        0: R_DOUBLE_LITERAL@19..21 "1" [Whitespace(" ")] []
+  2: EOF@21..21 "" [] []
+
+====================
+
+"f(else = 1)"
+0: R_ROOT@0..11
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..11
+    0: R_CALL@0..11
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..11
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..10
+          0: R_ARGUMENT@2..10
+            0: R_ARGUMENT_NAME_CLAUSE@2..8
+              0: R_IDENTIFIER@2..6
+                0: IDENT@2..6 "else" [] []
+              1: EQUAL@6..8 "=" [Whitespace(" ")] []
+            1: R_DOUBLE_VALUE@8..10
+              0: R_DOUBLE_LITERAL@8..10 "1" [Whitespace(" ")] []
+        2: R_PAREN@10..11 ")" [] []
+  2: EOF@11..11 "" [] []
+
+====================
+
+"f(in = 1)"
+0: R_ROOT@0..9
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..9
+    0: R_CALL@0..9
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..9
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..8
+          0: R_ARGUMENT@2..8
+            0: R_ARGUMENT_NAME_CLAUSE@2..6
+              0: R_IDENTIFIER@2..4
+                0: IDENT@2..4 "in" [] []
+              1: EQUAL@4..6 "=" [Whitespace(" ")] []
+            1: R_DOUBLE_VALUE@6..8
+              0: R_DOUBLE_LITERAL@6..8 "1" [Whitespace(" ")] []
+        2: R_PAREN@8..9 ")" [] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"f(TRUE = 1)"
+0: R_ROOT@0..11
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..11
+    0: R_CALL@0..11
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: R_CALL_ARGUMENTS@1..11
+        0: L_PAREN@1..2 "(" [] []
+        1: R_ARGUMENT_LIST@2..10
+          0: R_ARGUMENT@2..10
+            0: (empty)
+            1: R_BINARY_EXPRESSION@2..10
+              0: R_TRUE_EXPRESSION@2..6
+                0: TRUE_KW@2..6 "TRUE" [] []
+              1: EQUAL@6..8 "=" [Whitespace(" ")] []
+              2: R_DOUBLE_VALUE@8..10
+                0: R_DOUBLE_LITERAL@8..10 "1" [Whitespace(" ")] []
+        2: R_PAREN@10..11 ")" [] []
+  2: EOF@11..11 "" [] []
+
+====================
+
+"if (c) x else\ny"
+0: R_ROOT@0..15
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..15
+    0: R_IF_STATEMENT@0..15
+      0: IF_KW@0..2 "if" [] []
+      1: L_PAREN@2..4 "(" [Whitespace(" ")] []
+      2: R_IDENTIFIER@4..5
+        0: IDENT@4..5 "c" [] []
+      3: R_PAREN@5..6 ")" [] []
+      4: R_IDENTIFIER@6..8
+        0: IDENT@6..8 "x" [Whitespace(" ")] []
+      5: R_ELSE_CLAUSE@8..15
+        0: ELSE_KW@8..13 "else" [Whitespace(" ")] []
+        1: R_IDENTIFIER@13..15
+          0: IDENT@13..15 "y" [Newline("\n")] []
+  2: EOF@15..15 "" [] []
+
+====================
+
+"0x"
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..2
+    0: R_DOUBLE_VALUE@0..1
+      0: R_DOUBLE_LITERAL@0..1 "0" [] []
+    1: R_IDENTIFIER@1..2
+      0: IDENT@1..2 "x" [] []
+  2: EOF@2..2 "" [] []
+
+====================
+
+"1e"
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..2
+    0: R_DOUBLE_VALUE@0..2
+      0: R_DOUBLE_LITERAL@0..2 "1e" [] []
+  2: EOF@2..2 "" [] []
+
+====================
+
+"1e+"
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_DOUBLE_VALUE@0..3
+      0: R_DOUBLE_LITERAL@0..3 "1e+" [] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+".1L"
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_INTEGER_VALUE@0..3
+      0: R_INTEGER_LITERAL@0..3 ".1L" [] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+".1i"
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_COMPLEX_VALUE@0..3
+      0: R_COMPLEX_LITERAL@0..3 ".1i" [] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+".1foo"
+0: R_ROOT@0..5
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..5
+    0: R_DOUBLE_VALUE@0..2
+      0: R_DOUBLE_LITERAL@0..2 ".1" [] []
+    1: R_IDENTIFIER@2..5
+      0: IDENT@2..5 "foo" [] []
+  2: EOF@5..5 "" [] []
+
+====================
+
+"..1"
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_DOT_DOT_I@0..3
+      0: DOTDOTI@0..3 "..1" [] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+"..1a"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_IDENTIFIER@0..4
+      0: IDENT@0..4 "..1a" [] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"0x.p+1"
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_DOUBLE_VALUE@0..6
+      0: R_DOUBLE_LITERAL@0..6 "0x.p+1" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"5L2"
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_DOUBLE_VALUE@0..1
+      0: R_DOUBLE_LITERAL@0..1 "5" [] []
+    1: R_IDENTIFIER@1..3
+      0: IDENT@1..3 "L2" [] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+"1Li"
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_DOUBLE_VALUE@0..1
+      0: R_DOUBLE_LITERAL@0..1 "1" [] []
+    1: R_IDENTIFIER@1..3
+      0: IDENT@1..3 "Li" [] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+"héllo <- 1"
+0: R_ROOT@0..11
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..11
+    0: R_BINARY_EXPRESSION@0..11
+      0: R_IDENTIFIER@0..6
+        0: IDENT@0..6 "héllo" [] []
+      1: ASSIGN@6..9 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@9..11
+        0: R_DOUBLE_LITERAL@9..11 "1" [Whitespace(" ")] []
+  2: EOF@11..11 "" [] []
+
+====================
+
+"`a b` <- 1"
+0: R_ROOT@0..10
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..10
+    0: R_BINARY_EXPRESSION@0..10
+      0: R_IDENTIFIER@0..5
+        0: IDENT@0..5 "`a b`" [] []
+      1: ASSIGN@5..8 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@8..10
+        0: R_DOUBLE_LITERAL@8..10 "1" [Whitespace(" ")] []
+  2: EOF@10..10 "" [] []
+
+====================
+
+"r\"(a)b)\""
+0: R_ROOT@0..8
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..8
+    0: R_STRING_VALUE@0..8
+      0: STRING_OPEN@0..3 "r\"(" [] []
+      1: STRING_CONTENT@3..6 "a)b" [] []
+      2: STRING_CLOSE@6..8 ")\"" [] []
+  2: EOF@8..8 "" [] []
+
+====================
+
+"R\"---[x]---\""
+0: R_ROOT@0..12
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..12
+    0: R_STRING_VALUE@0..12
+      0: STRING_OPEN@0..6 "R\"---[" [] []
+      1: STRING_CONTENT@6..7 "x" [] []
+      2: STRING_CLOSE@7..12 "]---\"" [] []
+  2: EOF@12..12 "" [] []
+
+====================
+
+"r\"abc\""
+0: R_ROOT@0..6
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..6
+    0: R_IDENTIFIER@0..1
+      0: IDENT@0..1 "r" [] []
+    1: R_STRING_VALUE@1..6
+      0: STRING_OPEN@1..2 "\"" [] []
+      1: STRING_CONTENT@2..5 "abc" [] []
+      2: STRING_CLOSE@5..6 "\"" [] []
+  2: EOF@6..6 "" [] []
+
+====================
+
+"%no end" (parse error)
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_BOGUS_EXPRESSION@0..7
+      0: R_BOGUS@0..7 "%no end" [] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"\"no end" (parse error)
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_BOGUS_EXPRESSION@0..7
+      0: STRING_OPEN@0..1 "\"" [] []
+      1: R_BOGUS@1..7 "no end" [] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"`no end" (parse error)
+0: R_ROOT@0..7
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..7
+    0: R_BOGUS_EXPRESSION@0..7
+      0: R_BOGUS@0..7 "`no end" [] []
+  2: EOF@7..7 "" [] []
+
+====================
+
+"\u{feff}x <- 1"
+0: R_ROOT@0..9
+  0: UNICODE_BOM@0..3 "\u{feff}" [] []
+  1: R_EXPRESSION_LIST@3..9
+    0: R_BINARY_EXPRESSION@3..9
+      0: R_IDENTIFIER@3..4
+        0: IDENT@3..4 "x" [] []
+      1: ASSIGN@4..7 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@7..9
+        0: R_DOUBLE_LITERAL@7..9 "1" [Whitespace(" ")] []
+  2: EOF@9..9 "" [] []
+
+====================
+
+"\u{feff}"
+0: R_ROOT@0..3
+  0: UNICODE_BOM@0..3 "\u{feff}" [] []
+  1: R_EXPRESSION_LIST@3..3
+  2: EOF@3..3 "" [] []
+
+====================
+
+"()" (parse error)
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..2
+    0: R_BOGUS_EXPRESSION@0..2
+      0: L_PAREN@0..1 "(" [] []
+      1: R_PAREN@1..2 ")" [] []
+  2: EOF@2..2 "" [] []
+
+====================
+
+"x +" (parse error)
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_BOGUS_EXPRESSION@0..3
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "x" [] []
+      1: PLUS@1..3 "+" [Whitespace(" ")] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+"else"
+0: R_ROOT@0..4
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..4
+    0: R_IDENTIFIER@0..4
+      0: IDENT@0..4 "else" [] []
+  2: EOF@4..4 "" [] []
+
+====================
+
+"in"
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..2
+    0: R_IDENTIFIER@0..2
+      0: IDENT@0..2 "in" [] []
+  2: EOF@2..2 "" [] []
+
+====================
+
+"{" (parse error)
+0: R_ROOT@0..1
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..1
+    0: R_BOGUS_EXPRESSION@0..1
+      0: L_CURLY@0..1 "{" [] []
+      1: R_EXPRESSION_LIST@1..1
+  2: EOF@1..1 "" [] []
+
+====================
+
+"}" (parse error)
+0: R_ROOT@0..1
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..1
+    0: R_BOGUS_EXPRESSION@0..1
+      0: R_CURLY@0..1 "}" [] []
+  2: EOF@1..1 "" [] []
+
+====================
+
+"f(" (parse error)
+0: R_ROOT@0..2
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..2
+    0: R_BOGUS_EXPRESSION@0..2
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: L_PAREN@1..2 "(" [] []
+      2: R_ARGUMENT_LIST@2..2
+  2: EOF@2..2 "" [] []
+
+====================
+
+"a b"
+0: R_ROOT@0..3
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..3
+    0: R_IDENTIFIER@0..1
+      0: IDENT@0..1 "a" [] []
+    1: R_IDENTIFIER@1..3
+      0: IDENT@1..3 "b" [Whitespace(" ")] []
+  2: EOF@3..3 "" [] []
+
+====================
+
+"one <- 1\nf(a b)\ntwo <- 2" (parse error)
+0: R_ROOT@0..24
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..24
+    0: R_BINARY_EXPRESSION@0..8
+      0: R_IDENTIFIER@0..3
+        0: IDENT@0..3 "one" [] []
+      1: ASSIGN@3..6 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@6..8
+        0: R_DOUBLE_LITERAL@6..8 "1" [Whitespace(" ")] []
+    1: R_BOGUS_EXPRESSION@8..15
+      0: R_IDENTIFIER@8..10
+        0: IDENT@8..10 "f" [Newline("\n")] []
+      1: L_PAREN@10..11 "(" [] []
+      2: R_ARGUMENT@11..12
+        0: (empty)
+        1: R_IDENTIFIER@11..12
+          0: IDENT@11..12 "a" [] []
+      3: IDENT@12..14 "b" [Whitespace(" ")] []
+      4: R_PAREN@14..15 ")" [] []
+    2: R_BINARY_EXPRESSION@15..24
+      0: R_IDENTIFIER@15..19
+        0: IDENT@15..19 "two" [Newline("\n")] []
+      1: ASSIGN@19..22 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@22..24
+        0: R_DOUBLE_LITERAL@22..24 "2" [Whitespace(" ")] []
+  2: EOF@24..24 "" [] []
+
+====================
+
+"one <- 1; ) ; two <- 2" (parse error)
+0: R_ROOT@0..22
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..22
+    0: R_BINARY_EXPRESSION@0..8
+      0: R_IDENTIFIER@0..3
+        0: IDENT@0..3 "one" [] []
+      1: ASSIGN@3..6 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@6..8
+        0: R_DOUBLE_LITERAL@6..8 "1" [Whitespace(" ")] []
+    1: R_BOGUS_EXPRESSION@8..11
+      0: R_PAREN@8..11 ")" [Whitespace("; ")] []
+    2: R_BINARY_EXPRESSION@11..22
+      0: R_IDENTIFIER@11..17
+        0: IDENT@11..17 "two" [Whitespace(" ; ")] []
+      1: ASSIGN@17..20 "<-" [Whitespace(" ")] []
+      2: R_DOUBLE_VALUE@20..22
+        0: R_DOUBLE_LITERAL@20..22 "2" [Whitespace(" ")] []
+  2: EOF@22..22 "" [] []
+
+====================
+
+"{\n  good()\n  if broken\n  also_good()\n}" (parse error)
+0: R_ROOT@0..38
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..38
+    0: R_BRACED_EXPRESSIONS@0..38
+      0: L_CURLY@0..1 "{" [] []
+      1: R_EXPRESSION_LIST@1..36
+        0: R_CALL@1..10
+          0: R_IDENTIFIER@1..8
+            0: IDENT@1..8 "good" [Newline("\n"), Whitespace("  ")] []
+          1: R_CALL_ARGUMENTS@8..10
+            0: L_PAREN@8..9 "(" [] []
+            1: R_ARGUMENT_LIST@9..9
+            2: R_PAREN@9..10 ")" [] []
+        1: R_BOGUS_EXPRESSION@10..22
+          0: IF_KW@10..15 "if" [Newline("\n"), Whitespace("  ")] []
+          1: IDENT@15..22 "broken" [Whitespace(" ")] []
+        2: R_CALL@22..36
+          0: R_IDENTIFIER@22..34
+            0: IDENT@22..34 "also_good" [Newline("\n"), Whitespace("  ")] []
+          1: R_CALL_ARGUMENTS@34..36
+            0: L_PAREN@34..35 "(" [] []
+            1: R_ARGUMENT_LIST@35..35
+            2: R_PAREN@35..36 ")" [] []
+      2: R_CURLY@36..38 "}" [Newline("\n")] []
+  2: EOF@38..38 "" [] []
+
+====================
+
+"f(a b) g(c d)\nfine()" (parse error)
+0: R_ROOT@0..20
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..20
+    0: R_BOGUS_EXPRESSION@0..13
+      0: R_IDENTIFIER@0..1
+        0: IDENT@0..1 "f" [] []
+      1: L_PAREN@1..2 "(" [] []
+      2: R_ARGUMENT@2..3
+        0: (empty)
+        1: R_IDENTIFIER@2..3
+          0: IDENT@2..3 "a" [] []
+      3: IDENT@3..5 "b" [Whitespace(" ")] []
+      4: R_PAREN@5..6 ")" [] []
+      5: IDENT@6..8 "g" [Whitespace(" ")] []
+      6: L_PAREN@8..9 "(" [] []
+      7: IDENT@9..10 "c" [] []
+      8: IDENT@10..12 "d" [Whitespace(" ")] []
+      9: R_PAREN@12..13 ")" [] []
+    1: R_CALL@13..20
+      0: R_IDENTIFIER@13..18
+        0: IDENT@13..18 "fine" [Newline("\n")] []
+      1: R_CALL_ARGUMENTS@18..20
+        0: L_PAREN@18..19 "(" [] []
+        1: R_ARGUMENT_LIST@19..19
+        2: R_PAREN@19..20 ")" [] []
+  2: EOF@20..20 "" [] []
+
+====================

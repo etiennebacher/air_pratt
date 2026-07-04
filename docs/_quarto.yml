@@ -1,0 +1,53 @@
+project:
+  type: website
+
+website:
+  title: "Air"
+  repo-url: https://github.com/posit-dev/air/
+  repo-subdir: docs
+  repo-actions: [source, issue]
+  navbar:
+    background: primary
+    search: true
+  sidebar:
+    style: "floating"
+    search: true
+    contents:
+      - text: "Air"
+        href: index.qmd
+
+      - text: "Formatter"
+        href: formatter.qmd
+
+      - text: "Command line"
+        href: cli.qmd
+
+      - section: "Editors"
+        href: editors.qmd
+        contents:
+          - editor-vscode.qmd
+          - editor-rstudio.qmd
+          - editor-zed.qmd
+          - editor-neovim.qmd
+          - editor-helix.qmd
+          - editor-emacs.qmd
+
+      - section: "Integrations"
+        contents:
+          - integration-github-actions.qmd
+          - integration-pre-commit.qmd
+          - integration-uv.qmd
+
+      - text: "Configuration"
+        href: configuration.qmd
+  margin-header: |
+    <img src="/images/air.png" alt="Logo" width="150"/>
+
+format:
+  html:
+    theme:
+      - cosmo
+      - custom.scss
+    toc: true
+
+editor: visual

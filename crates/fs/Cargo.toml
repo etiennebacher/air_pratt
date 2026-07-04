@@ -1,0 +1,22 @@
+[package]
+name = "fs"
+version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Air filesystem utilities"
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[dependencies]
+path-absolutize = { workspace = true, features = [
+  "once_cell_cache",
+  "use_unix_paths_on_wasm",
+] }
+
+[lints]
+workspace = true

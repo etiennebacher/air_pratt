@@ -1,0 +1,33 @@
+[package]
+name = "air_r_formatter"
+version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Air R Formatter"
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[dependencies]
+air_r_syntax = { workspace = true }
+biome_formatter = { workspace = true }
+biome_rowan = { workspace = true }
+comments = { workspace = true }
+itertools = { workspace = true }
+line_ending = { workspace = true }
+settings = { workspace = true, features = ["biome", "serde"] }
+tracing = { workspace = true }
+
+[dev-dependencies]
+air_formatter_test = { workspace = true }
+air_r_parser = { workspace = true }
+biome_parser = { workspace = true }
+tests_macros = { workspace = true }
+workspace = { workspace = true }
+
+[lints]
+workspace = true
