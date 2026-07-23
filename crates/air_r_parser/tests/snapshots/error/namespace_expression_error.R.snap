@@ -1,0 +1,316 @@
+---
+source: crates/air_r_parser/tests/spec_test.rs
+expression: snapshot
+---
+## Input
+
+```R
+# R requires a name after `::`/`:::`. tree-sitter-r makes it `optional()`
+# only so ark can complete at `pkg::<cursor>`; we match R and treat a missing
+# right side as a parse error, recovering with an empty `right` slot. Anything
+# that isn't an identifier, string, or dots selector (a number, keyword,
+# parenthesized/braced expression, ...) leaves the right side missing.
+
+a::1
+a::NA
+a::NULL
+a::TRUE
+a::(b)
+a::{ b }
+
+a:::1
+a:::NA
+a:::NULL
+a:::TRUE
+a:::(b)
+a:::{ b }
+
+```
+
+
+## AST
+
+```
+RRoot {
+    bom_token: missing (optional),
+    expressions: RExpressionList [
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@0..377 "a" [Comments("# R requires a name a ..."), Newline("\n"), Comments("# only so ark can com ..."), Newline("\n"), Comments("# right side as a par ..."), Newline("\n"), Comments("# that isn't an ident ..."), Newline("\n"), Comments("# parenthesized/brace ..."), Newline("\n"), Newline("\n")] [],
+            },
+            operator: COLON2@377..379 "::" [] [],
+            right: missing (required),
+        },
+        RDoubleValue {
+            value_token: R_DOUBLE_LITERAL@379..380 "1" [] [],
+        },
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@380..382 "a" [Newline("\n")] [],
+            },
+            operator: COLON2@382..384 "::" [] [],
+            right: missing (required),
+        },
+        RNaExpression {
+            value: NA_LOGICAL_KW@384..386 "NA" [] [],
+        },
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@386..388 "a" [Newline("\n")] [],
+            },
+            operator: COLON2@388..390 "::" [] [],
+            right: missing (required),
+        },
+        RNullExpression {
+            null_token: NULL_KW@390..394 "NULL" [] [],
+        },
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@394..396 "a" [Newline("\n")] [],
+            },
+            operator: COLON2@396..398 "::" [] [],
+            right: missing (required),
+        },
+        RTrueExpression {
+            true_token: TRUE_KW@398..402 "TRUE" [] [],
+        },
+        RCall {
+            function: RNamespaceExpression {
+                left: RIdentifier {
+                    name_token: IDENT@402..404 "a" [Newline("\n")] [],
+                },
+                operator: COLON2@404..406 "::" [] [],
+                right: missing (required),
+            },
+            arguments: RCallArguments {
+                l_paren_token: L_PAREN@406..407 "(" [] [],
+                items: RArgumentList [
+                    RArgument {
+                        name_clause: missing (optional),
+                        value: RIdentifier {
+                            name_token: IDENT@407..408 "b" [] [],
+                        },
+                    },
+                ],
+                r_paren_token: R_PAREN@408..409 ")" [] [],
+            },
+        },
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@409..411 "a" [Newline("\n")] [],
+            },
+            operator: COLON2@411..413 "::" [] [],
+            right: missing (required),
+        },
+        RBracedExpressions {
+            l_curly_token: L_CURLY@413..414 "{" [] [],
+            expressions: RExpressionList [
+                RIdentifier {
+                    name_token: IDENT@414..416 "b" [Whitespace(" ")] [],
+                },
+            ],
+            r_curly_token: R_CURLY@416..418 "}" [Whitespace(" ")] [],
+        },
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@418..421 "a" [Newline("\n"), Newline("\n")] [],
+            },
+            operator: COLON3@421..424 ":::" [] [],
+            right: missing (required),
+        },
+        RDoubleValue {
+            value_token: R_DOUBLE_LITERAL@424..425 "1" [] [],
+        },
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@425..427 "a" [Newline("\n")] [],
+            },
+            operator: COLON3@427..430 ":::" [] [],
+            right: missing (required),
+        },
+        RNaExpression {
+            value: NA_LOGICAL_KW@430..432 "NA" [] [],
+        },
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@432..434 "a" [Newline("\n")] [],
+            },
+            operator: COLON3@434..437 ":::" [] [],
+            right: missing (required),
+        },
+        RNullExpression {
+            null_token: NULL_KW@437..441 "NULL" [] [],
+        },
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@441..443 "a" [Newline("\n")] [],
+            },
+            operator: COLON3@443..446 ":::" [] [],
+            right: missing (required),
+        },
+        RTrueExpression {
+            true_token: TRUE_KW@446..450 "TRUE" [] [],
+        },
+        RCall {
+            function: RNamespaceExpression {
+                left: RIdentifier {
+                    name_token: IDENT@450..452 "a" [Newline("\n")] [],
+                },
+                operator: COLON3@452..455 ":::" [] [],
+                right: missing (required),
+            },
+            arguments: RCallArguments {
+                l_paren_token: L_PAREN@455..456 "(" [] [],
+                items: RArgumentList [
+                    RArgument {
+                        name_clause: missing (optional),
+                        value: RIdentifier {
+                            name_token: IDENT@456..457 "b" [] [],
+                        },
+                    },
+                ],
+                r_paren_token: R_PAREN@457..458 ")" [] [],
+            },
+        },
+        RNamespaceExpression {
+            left: RIdentifier {
+                name_token: IDENT@458..460 "a" [Newline("\n")] [],
+            },
+            operator: COLON3@460..463 ":::" [] [],
+            right: missing (required),
+        },
+        RBracedExpressions {
+            l_curly_token: L_CURLY@463..464 "{" [] [],
+            expressions: RExpressionList [
+                RIdentifier {
+                    name_token: IDENT@464..466 "b" [Whitespace(" ")] [],
+                },
+            ],
+            r_curly_token: R_CURLY@466..468 "}" [Whitespace(" ")] [],
+        },
+    ],
+    eof_token: EOF@468..469 "" [Newline("\n")] [],
+}
+```
+
+## CST
+
+```
+0: R_ROOT@0..469
+  0: (empty)
+  1: R_EXPRESSION_LIST@0..468
+    0: R_NAMESPACE_EXPRESSION@0..379
+      0: R_IDENTIFIER@0..377
+        0: IDENT@0..377 "a" [Comments("# R requires a name a ..."), Newline("\n"), Comments("# only so ark can com ..."), Newline("\n"), Comments("# right side as a par ..."), Newline("\n"), Comments("# that isn't an ident ..."), Newline("\n"), Comments("# parenthesized/brace ..."), Newline("\n"), Newline("\n")] []
+      1: COLON2@377..379 "::" [] []
+      2: (empty)
+    1: R_DOUBLE_VALUE@379..380
+      0: R_DOUBLE_LITERAL@379..380 "1" [] []
+    2: R_NAMESPACE_EXPRESSION@380..384
+      0: R_IDENTIFIER@380..382
+        0: IDENT@380..382 "a" [Newline("\n")] []
+      1: COLON2@382..384 "::" [] []
+      2: (empty)
+    3: R_NA_EXPRESSION@384..386
+      0: NA_LOGICAL_KW@384..386 "NA" [] []
+    4: R_NAMESPACE_EXPRESSION@386..390
+      0: R_IDENTIFIER@386..388
+        0: IDENT@386..388 "a" [Newline("\n")] []
+      1: COLON2@388..390 "::" [] []
+      2: (empty)
+    5: R_NULL_EXPRESSION@390..394
+      0: NULL_KW@390..394 "NULL" [] []
+    6: R_NAMESPACE_EXPRESSION@394..398
+      0: R_IDENTIFIER@394..396
+        0: IDENT@394..396 "a" [Newline("\n")] []
+      1: COLON2@396..398 "::" [] []
+      2: (empty)
+    7: R_TRUE_EXPRESSION@398..402
+      0: TRUE_KW@398..402 "TRUE" [] []
+    8: R_CALL@402..409
+      0: R_NAMESPACE_EXPRESSION@402..406
+        0: R_IDENTIFIER@402..404
+          0: IDENT@402..404 "a" [Newline("\n")] []
+        1: COLON2@404..406 "::" [] []
+        2: (empty)
+      1: R_CALL_ARGUMENTS@406..409
+        0: L_PAREN@406..407 "(" [] []
+        1: R_ARGUMENT_LIST@407..408
+          0: R_ARGUMENT@407..408
+            0: (empty)
+            1: R_IDENTIFIER@407..408
+              0: IDENT@407..408 "b" [] []
+        2: R_PAREN@408..409 ")" [] []
+    9: R_NAMESPACE_EXPRESSION@409..413
+      0: R_IDENTIFIER@409..411
+        0: IDENT@409..411 "a" [Newline("\n")] []
+      1: COLON2@411..413 "::" [] []
+      2: (empty)
+    10: R_BRACED_EXPRESSIONS@413..418
+      0: L_CURLY@413..414 "{" [] []
+      1: R_EXPRESSION_LIST@414..416
+        0: R_IDENTIFIER@414..416
+          0: IDENT@414..416 "b" [Whitespace(" ")] []
+      2: R_CURLY@416..418 "}" [Whitespace(" ")] []
+    11: R_NAMESPACE_EXPRESSION@418..424
+      0: R_IDENTIFIER@418..421
+        0: IDENT@418..421 "a" [Newline("\n"), Newline("\n")] []
+      1: COLON3@421..424 ":::" [] []
+      2: (empty)
+    12: R_DOUBLE_VALUE@424..425
+      0: R_DOUBLE_LITERAL@424..425 "1" [] []
+    13: R_NAMESPACE_EXPRESSION@425..430
+      0: R_IDENTIFIER@425..427
+        0: IDENT@425..427 "a" [Newline("\n")] []
+      1: COLON3@427..430 ":::" [] []
+      2: (empty)
+    14: R_NA_EXPRESSION@430..432
+      0: NA_LOGICAL_KW@430..432 "NA" [] []
+    15: R_NAMESPACE_EXPRESSION@432..437
+      0: R_IDENTIFIER@432..434
+        0: IDENT@432..434 "a" [Newline("\n")] []
+      1: COLON3@434..437 ":::" [] []
+      2: (empty)
+    16: R_NULL_EXPRESSION@437..441
+      0: NULL_KW@437..441 "NULL" [] []
+    17: R_NAMESPACE_EXPRESSION@441..446
+      0: R_IDENTIFIER@441..443
+        0: IDENT@441..443 "a" [Newline("\n")] []
+      1: COLON3@443..446 ":::" [] []
+      2: (empty)
+    18: R_TRUE_EXPRESSION@446..450
+      0: TRUE_KW@446..450 "TRUE" [] []
+    19: R_CALL@450..458
+      0: R_NAMESPACE_EXPRESSION@450..455
+        0: R_IDENTIFIER@450..452
+          0: IDENT@450..452 "a" [Newline("\n")] []
+        1: COLON3@452..455 ":::" [] []
+        2: (empty)
+      1: R_CALL_ARGUMENTS@455..458
+        0: L_PAREN@455..456 "(" [] []
+        1: R_ARGUMENT_LIST@456..457
+          0: R_ARGUMENT@456..457
+            0: (empty)
+            1: R_IDENTIFIER@456..457
+              0: IDENT@456..457 "b" [] []
+        2: R_PAREN@457..458 ")" [] []
+    20: R_NAMESPACE_EXPRESSION@458..463
+      0: R_IDENTIFIER@458..460
+        0: IDENT@458..460 "a" [Newline("\n")] []
+      1: COLON3@460..463 ":::" [] []
+      2: (empty)
+    21: R_BRACED_EXPRESSIONS@463..468
+      0: L_CURLY@463..464 "{" [] []
+      1: R_EXPRESSION_LIST@464..466
+        0: R_IDENTIFIER@464..466
+          0: IDENT@464..466 "b" [Whitespace(" ")] []
+      2: R_CURLY@466..468 "}" [Whitespace(" ")] []
+  2: EOF@468..469 "" [Newline("\n")] []
+
+```
+
+## Errors
+
+```
+expected an identifier or string after `::`
+```

@@ -201,33 +201,37 @@ fn parse_prefix(p: &mut RParser) -> Option<CompletedMarker> {
     }
 }
 
-/// `x$y` / `x@y`: any expression on the left, an optional selector on the
-/// right (`x$` is a valid parse in tree-sitter-r, the slot is just missing)
+/// `x$y` / `x@y`: any expression on the left, a required selector on the right
 fn parse_extract(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarker> {
     let m = lhs.precede(p);
-    p.bump(p.cur());
+    let operator = p.cur();
+    p.bump(operator);
 
-    // The selector is optional, and empirically (tree-sitter is the arbiter):
-    // - a semicolon always blocks it (`x$;y`)
-    // - newlines never block it: `$` keeps looking for its selector across any
-    //   number of blank lines, so `x$\n\ny` is still `x$y`. Only a semicolon
-    //   terminates the search.
+    // Unlike `::`, `$` keeps looking for its selector across any number of
+    // blank lines, so `x$\n\ny` is still `x$y`. Only a semicolon terminates
+    // the search.
     if atoms::at_selector_start(p.cur()) && !p.has_preceding_semicolons() {
         let Some(_) = atoms::parse_selector(p) else {
             m.abandon(p);
             return None;
         };
+    } else {
+        let what = if operator == AT {
+            "an identifier or string after `@`"
+        } else {
+            "an identifier or string after `$`"
+        };
+        expected(p, what);
     }
 
     Some(m.complete(p, R_EXTRACT_EXPRESSION))
 }
 
-/// `pkg::name` / `pkg:::name`: selectors on both sides, right side optional.
-/// Unlike `$`, the grammar does not allow newlines after `::`, so in
-/// newline-significant contexts a line break leaves the right side missing.
+/// `pkg::name` / `pkg:::name`: selectors on both sides, both required
 fn parse_namespace(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarker> {
+    let operator = if p.at(COLON3) { ":::" } else { "::" };
+
     if !atoms::is_selector_kind(lhs.kind(p)) {
-        let operator = if p.at(COLON3) { ":::" } else { "::" };
         expected(p, &format!("an identifier or string before `{operator}`"));
         return None;
     }
@@ -241,6 +245,8 @@ fn parse_namespace(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMar
             m.abandon(p);
             return None;
         };
+    } else {
+        expected(p, &format!("an identifier or string after `{operator}`"));
     }
 
     Some(m.complete(p, R_NAMESPACE_EXPRESSION))
