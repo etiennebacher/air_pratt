@@ -88,7 +88,10 @@ fn test_deep_call_nesting_without_parse_expression() {
 
 #[test]
 fn test_flat_pathological_inputs() {
-    assert_parses("dollars", format!("x{}", "$".repeat(100000)), false);
+    // Each `$` is missing its selector, so every level is a parse error; the
+    // point here is that the deep error-recovery tree still parses without
+    // overflowing
+    assert_parses("dollars", format!("x{}", "$".repeat(100000)), true);
     assert_parses("semis", ";".repeat(200000), false);
     assert_parses("commas", format!("f({})", ",".repeat(100000)), false);
     assert_parses("unclosed brackets", "[[".repeat(100000), true);

@@ -166,7 +166,7 @@ expression: snapshot
 
 ====================
 
-"x$;y"
+"x$;y" (parse error)
 0: R_ROOT@0..4
   0: (empty)
   1: R_EXPRESSION_LIST@0..4
@@ -181,7 +181,7 @@ expression: snapshot
 
 ====================
 
-"pkg::;name"
+"pkg::;name" (parse error)
 0: R_ROOT@0..10
   0: (empty)
   1: R_EXPRESSION_LIST@0..10
@@ -923,7 +923,7 @@ expression: snapshot
 
 ====================
 
-"x$"
+"x$" (parse error)
 0: R_ROOT@0..2
   0: (empty)
   1: R_EXPRESSION_LIST@0..2
@@ -936,7 +936,7 @@ expression: snapshot
 
 ====================
 
-"x@"
+"x@" (parse error)
 0: R_ROOT@0..2
   0: (empty)
   1: R_EXPRESSION_LIST@0..2
@@ -949,7 +949,7 @@ expression: snapshot
 
 ====================
 
-"pkg::"
+"pkg::" (parse error)
 0: R_ROOT@0..5
   0: (empty)
   1: R_EXPRESSION_LIST@0..5
@@ -962,7 +962,7 @@ expression: snapshot
 
 ====================
 
-"x$ + 1"
+"x$ + 1" (parse error)
 0: R_ROOT@0..6
   0: (empty)
   1: R_EXPRESSION_LIST@0..6
@@ -2012,7 +2012,7 @@ expression: snapshot
 
 ====================
 
-"x$TRUE"
+"x$TRUE" (parse error)
 0: R_ROOT@0..6
   0: (empty)
   1: R_EXPRESSION_LIST@0..6
