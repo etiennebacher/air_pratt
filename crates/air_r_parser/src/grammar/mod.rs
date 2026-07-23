@@ -114,14 +114,9 @@ fn recover_statement(p: &mut RParser, m: Marker, end: RSyntaxKind) {
     m.complete(p, RSyntaxKind::R_BOGUS_EXPRESSION);
 }
 
-/// Record a diagnostic with a custom `message` at the current token
-fn error_here(p: &mut RParser, message: impl Into<String>) {
-    let range = p.cur_range();
-    let diagnostic = p.err_builder(message.into(), range);
-    p.error(diagnostic);
-}
-
-/// Record an "expected {what}" diagnostic at the current token
+/// Record an error diagnostic at the current token
 fn expected(p: &mut RParser, what: &str) {
-    error_here(p, format!("expected {what}"));
+    let range = p.cur_range();
+    let diagnostic = p.err_builder(format!("expected {what}"), range);
+    p.error(diagnostic);
 }

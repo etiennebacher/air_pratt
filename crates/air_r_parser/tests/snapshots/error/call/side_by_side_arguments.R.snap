@@ -61,5 +61,5 @@ RRoot {
 ## Errors
 
 ```
-missing comma between arguments
+expected a comma between arguments
 ```
