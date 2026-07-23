@@ -22,26 +22,22 @@ mod functions;
 
 use air_r_syntax::RSyntaxKind;
 use biome_parser::Parser;
+use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::event::Event;
 use biome_parser::prelude::CompletedMarker;
 use biome_parser::prelude::Marker;
 use biome_parser::prelude::Trivia;
 
-use crate::ParseError;
 use crate::parser::RParser;
 
-pub(crate) fn parse_text(text: &str) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Option<ParseError>) {
+pub(crate) fn parse_text(
+    text: &str,
+) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Vec<ParseDiagnostic>) {
     let mut p = RParser::new(text);
 
     parse_root(&mut p);
 
-    let failed = p.failed();
-    let (events, trivia) = p.finish();
-
-    let error =
-        failed.then(|| ParseError::new(String::from("Failed to parse due to syntax errors.")));
-
-    (events, trivia, error)
+    p.finish()
 }
 
 fn parse_root(p: &mut RParser) -> CompletedMarker {

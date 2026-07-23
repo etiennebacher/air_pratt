@@ -7,6 +7,7 @@
 
 use air_r_syntax::RSyntaxKind;
 use biome_parser::ParserContext;
+use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::event::Event;
 use biome_parser::prelude::TokenSource;
 use biome_parser::prelude::Trivia;
@@ -71,18 +72,14 @@ impl<'src> RParser<'src> {
         self.source.try_glue_right_bracket2()
     }
 
-    /// Did anything go wrong? In the parity phase, any error at all collapses
-    /// the parse into a whole-file failure.
-    pub(crate) fn failed(&self) -> bool {
-        !self.context.diagnostics().is_empty()
-            || self.source.lexer_error().is_some()
-            || self.source.has_stray_semicolons()
-    }
-
-    pub(crate) fn finish(self) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>) {
-        let (events, _diagnostics) = self.context.finish();
-        let (trivia, _diagnostics) = self.source.finish();
-        (events, trivia)
+    /// Finish parsing, returning the events and trivia for tree building along
+    /// with every diagnostic (message + range) recorded by the grammar, lexer,
+    /// and token source.
+    pub(crate) fn finish(self) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Vec<ParseDiagnostic>) {
+        let (events, mut diagnostics) = self.context.finish();
+        let (trivia, source_diagnostics) = self.source.finish();
+        diagnostics.extend(source_diagnostics);
+        (events, trivia, diagnostics)
     }
 }
 

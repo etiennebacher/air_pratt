@@ -107,7 +107,7 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) -> bool {
 
         if previous == Previous::Argument {
             // Two arguments must be separated by a comma: `fn(a b)` is an error
-            expected(p, "`,` or the end of the arguments");
+            expected(p, "a comma between arguments");
             return false;
         }
 

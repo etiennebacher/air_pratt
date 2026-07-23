@@ -228,7 +228,8 @@ fn parse_extract(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarke
 /// newline-significant contexts a line break leaves the right side missing.
 fn parse_namespace(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarker> {
     if !atoms::is_selector_kind(lhs.kind(p)) {
-        expected(p, "an identifier or string before `::`");
+        let operator = if p.at(COLON3) { ":::" } else { "::" };
+        expected(p, &format!("an identifier or string before `{operator}`"));
         return None;
     }
 
