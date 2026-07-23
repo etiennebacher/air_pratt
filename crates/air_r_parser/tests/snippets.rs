@@ -50,7 +50,7 @@ const SNIPPETS: &[&str] = &[
     "f\n(x)",
     "x$\ny",
     "x@\ny",
-    // An extract selector survives one line break, not two; lone `\r` is
+    // An extract selector survives any number of line breaks ; lone `\r` is
     // not a line break at all
     "x$\n\ny",
     "{\nx$\n\ny\n}",
