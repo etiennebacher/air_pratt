@@ -209,11 +209,10 @@ fn parse_extract(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarke
 
     // The selector is optional, and empirically (tree-sitter is the arbiter):
     // - a semicolon always blocks it (`x$;y`)
-    // - in newline-significant contexts, it survives at most ONE line break:
-    //   `x$\ny` is `x$y`, but a blank line (`x$\n\ny`) leaves the selector
-    //   missing and `y` starts a new statement
-    let newlines_block = p.newlines_significant() && p.preceding_newlines() > 1;
-    if atoms::at_selector_start(p.cur()) && !p.has_preceding_semicolons() && !newlines_block {
+    // - newlines never block it: `$` keeps looking for its selector across any
+    //   number of blank lines, so `x$\n\ny` is still `x$y`. Only a semicolon
+    //   terminates the search.
+    if atoms::at_selector_start(p.cur()) && !p.has_preceding_semicolons() {
         let Some(_) = atoms::parse_selector(p) else {
             m.abandon(p);
             return None;

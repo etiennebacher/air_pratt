@@ -59,11 +59,6 @@ impl<'src> RParser<'src> {
         self.source.gap_semicolons() > 0
     }
 
-    /// Number of line breaks before the current token
-    pub(crate) fn preceding_newlines(&self) -> u32 {
-        self.source.gap_newlines()
-    }
-
     pub(crate) fn bless_semicolons(&mut self) {
         self.source.bless_semicolons();
     }

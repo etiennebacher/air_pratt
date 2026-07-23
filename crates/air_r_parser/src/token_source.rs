@@ -280,11 +280,6 @@ impl<'src> RTokenSource<'src> {
         self.gap_semicolons
     }
 
-    /// Number of line breaks in the gap before the current token
-    pub(crate) fn gap_newlines(&self) -> u32 {
-        self.gap_newlines
-    }
-
     /// Accept the semicolons in the gap before the current token as legal
     /// statement separators
     pub(crate) fn bless_semicolons(&mut self) {

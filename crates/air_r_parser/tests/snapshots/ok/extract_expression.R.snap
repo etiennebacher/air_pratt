@@ -32,6 +32,16 @@ a@..1
 a$..10
 a@..10
 
+# `$` keeps looking for its selector across blank lines
+a$
+
+
+b
+a@
+
+
+b
+
 ```
 
 
@@ -247,17 +257,35 @@ RRoot {
                 value_token: DOTDOTI@109..113 "..10" [] [],
             },
         },
+        RExtractExpression {
+            left: RIdentifier {
+                name_token: IDENT@113..172 "a" [Newline("\n"), Newline("\n"), Comments("# `$` keeps looking f ..."), Newline("\n")] [],
+            },
+            operator: DOLLAR@172..173 "$" [] [],
+            right: RIdentifier {
+                name_token: IDENT@173..177 "b" [Newline("\n"), Newline("\n"), Newline("\n")] [],
+            },
+        },
+        RExtractExpression {
+            left: RIdentifier {
+                name_token: IDENT@177..179 "a" [Newline("\n")] [],
+            },
+            operator: AT@179..180 "@" [] [],
+            right: RIdentifier {
+                name_token: IDENT@180..184 "b" [Newline("\n"), Newline("\n"), Newline("\n")] [],
+            },
+        },
     ],
-    eof_token: EOF@113..114 "" [Newline("\n")] [],
+    eof_token: EOF@184..185 "" [Newline("\n")] [],
 }
 ```
 
 ## CST
 
 ```
-0: R_ROOT@0..114
+0: R_ROOT@0..185
   0: (empty)
-  1: R_EXPRESSION_LIST@0..113
+  1: R_EXPRESSION_LIST@0..184
     0: R_EXTRACT_EXPRESSION@0..3
       0: R_IDENTIFIER@0..1
         0: IDENT@0..1 "a" [] []
@@ -398,6 +426,18 @@ RRoot {
       1: AT@108..109 "@" [] []
       2: R_DOT_DOT_I@109..113
         0: DOTDOTI@109..113 "..10" [] []
-  2: EOF@113..114 "" [Newline("\n")] []
+    18: R_EXTRACT_EXPRESSION@113..177
+      0: R_IDENTIFIER@113..172
+        0: IDENT@113..172 "a" [Newline("\n"), Newline("\n"), Comments("# `$` keeps looking f ..."), Newline("\n")] []
+      1: DOLLAR@172..173 "$" [] []
+      2: R_IDENTIFIER@173..177
+        0: IDENT@173..177 "b" [Newline("\n"), Newline("\n"), Newline("\n")] []
+    19: R_EXTRACT_EXPRESSION@177..184
+      0: R_IDENTIFIER@177..179
+        0: IDENT@177..179 "a" [Newline("\n")] []
+      1: AT@179..180 "@" [] []
+      2: R_IDENTIFIER@180..184
+        0: IDENT@180..184 "b" [Newline("\n"), Newline("\n"), Newline("\n")] []
+  2: EOF@184..185 "" [Newline("\n")] []
 
 ```

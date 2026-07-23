@@ -549,13 +549,12 @@ expression: snapshot
 0: R_ROOT@0..5
   0: (empty)
   1: R_EXPRESSION_LIST@0..5
-    0: R_EXTRACT_EXPRESSION@0..2
+    0: R_EXTRACT_EXPRESSION@0..5
       0: R_IDENTIFIER@0..1
         0: IDENT@0..1 "x" [] []
       1: DOLLAR@1..2 "$" [] []
-      2: (empty)
-    1: R_IDENTIFIER@2..5
-      0: IDENT@2..5 "y" [Newline("\n"), Newline("\n")] []
+      2: R_IDENTIFIER@2..5
+        0: IDENT@2..5 "y" [Newline("\n"), Newline("\n")] []
   2: EOF@5..5 "" [] []
 
 ====================
@@ -567,13 +566,12 @@ expression: snapshot
     0: R_BRACED_EXPRESSIONS@0..9
       0: L_CURLY@0..1 "{" [] []
       1: R_EXPRESSION_LIST@1..7
-        0: R_EXTRACT_EXPRESSION@1..4
+        0: R_EXTRACT_EXPRESSION@1..7
           0: R_IDENTIFIER@1..3
             0: IDENT@1..3 "x" [Newline("\n")] []
           1: DOLLAR@3..4 "$" [] []
-          2: (empty)
-        1: R_IDENTIFIER@4..7
-          0: IDENT@4..7 "y" [Newline("\n"), Newline("\n")] []
+          2: R_IDENTIFIER@4..7
+            0: IDENT@4..7 "y" [Newline("\n"), Newline("\n")] []
       2: R_CURLY@7..9 "}" [Newline("\n")] []
   2: EOF@9..9 "" [] []
 
@@ -614,13 +612,12 @@ expression: snapshot
 0: R_ROOT@0..8
   0: (empty)
   1: R_EXPRESSION_LIST@0..8
-    0: R_EXTRACT_EXPRESSION@0..2
+    0: R_EXTRACT_EXPRESSION@0..8
       0: R_IDENTIFIER@0..1
         0: IDENT@0..1 "x" [] []
       1: DOLLAR@1..2 "$" [] []
-      2: (empty)
-    1: R_IDENTIFIER@2..8
-      0: IDENT@2..8 "y" [Newline("\n"), Comments("# c"), Newline("\n")] []
+      2: R_IDENTIFIER@2..8
+        0: IDENT@2..8 "y" [Newline("\n"), Comments("# c"), Newline("\n")] []
   2: EOF@8..8 "" [] []
 
 ====================
@@ -657,13 +654,12 @@ expression: snapshot
 0: R_ROOT@0..7
   0: (empty)
   1: R_EXPRESSION_LIST@0..7
-    0: R_EXTRACT_EXPRESSION@0..2
+    0: R_EXTRACT_EXPRESSION@0..7
       0: R_IDENTIFIER@0..1
         0: IDENT@0..1 "x" [] []
       1: DOLLAR@1..2 "$" [] []
-      2: (empty)
-    1: R_IDENTIFIER@2..7
-      0: IDENT@2..7 "y" [Newline("\r\n"), Newline("\r\n")] []
+      2: R_IDENTIFIER@2..7
+        0: IDENT@2..7 "y" [Newline("\r\n"), Newline("\r\n")] []
   2: EOF@7..7 "" [] []
 
 ====================
