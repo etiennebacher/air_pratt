@@ -30,9 +30,7 @@ use biome_parser::prelude::Trivia;
 use crate::ParseError;
 use crate::parser::RParser;
 
-pub(crate) fn parse_text(
-    text: &str,
-) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Option<ParseError>) {
+pub(crate) fn parse_text(text: &str) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Option<ParseError>) {
     let mut p = RParser::new(text);
 
     parse_root(&mut p);

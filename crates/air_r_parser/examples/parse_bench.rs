@@ -28,10 +28,7 @@ fn collect_r_files(root: &Path, files: &mut Vec<PathBuf>) {
             if name != "target" && name != ".git" {
                 collect_r_files(&path, files);
             }
-        } else if path
-            .extension()
-            .is_some_and(|ext| ext == "R" || ext == "r")
-        {
+        } else if path.extension().is_some_and(|ext| ext == "R" || ext == "r") {
             files.push(path);
         }
     }
