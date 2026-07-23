@@ -53,7 +53,11 @@ fn binary_binding_power(kind: RSyntaxKind) -> Option<(u8, u8)> {
         // `&` `&&` (rank 9, left)
         AND | AND2 => (18, 19),
         // comparisons (rank 11, left)
-        LESS_THAN | LESS_THAN_OR_EQUAL_TO | GREATER_THAN | GREATER_THAN_OR_EQUAL_TO | EQUAL2
+        LESS_THAN
+        | LESS_THAN_OR_EQUAL_TO
+        | GREATER_THAN
+        | GREATER_THAN_OR_EQUAL_TO
+        | EQUAL2
         | NOT_EQUAL => (22, 23),
         // `+` `-` (rank 12, left)
         PLUS | MINUS => (24, 25),
@@ -205,11 +209,10 @@ fn parse_extract(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarke
 
     // The selector is optional, and empirically (tree-sitter is the arbiter):
     // - a semicolon always blocks it (`x$;y`)
-    // - in newline-significant contexts, it survives at most ONE line break:
-    //   `x$\ny` is `x$y`, but a blank line (`x$\n\ny`) leaves the selector
-    //   missing and `y` starts a new statement
-    let newlines_block = p.newlines_significant() && p.preceding_newlines() > 1;
-    if atoms::at_selector_start(p.cur()) && !p.has_preceding_semicolons() && !newlines_block {
+    // - newlines never block it: `$` keeps looking for its selector across any
+    //   number of blank lines, so `x$\n\ny` is still `x$y`. Only a semicolon
+    //   terminates the search.
+    if atoms::at_selector_start(p.cur()) && !p.has_preceding_semicolons() {
         let Some(_) = atoms::parse_selector(p) else {
             m.abandon(p);
             return None;
@@ -224,7 +227,8 @@ fn parse_extract(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarke
 /// newline-significant contexts a line break leaves the right side missing.
 fn parse_namespace(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarker> {
     if !atoms::is_selector_kind(lhs.kind(p)) {
-        expected(p, "an identifier or string before `::`");
+        let operator = if p.at(COLON3) { ":::" } else { "::" };
+        expected(p, &format!("an identifier or string before `{operator}`"));
         return None;
     }
 
@@ -232,8 +236,7 @@ fn parse_namespace(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMar
     p.bump(p.cur());
 
     let separator_blocks_rhs = p.newlines_significant() && p.has_preceding_separator();
-    if atoms::at_selector_start(p.cur()) && !separator_blocks_rhs && !p.has_preceding_semicolons()
-    {
+    if atoms::at_selector_start(p.cur()) && !separator_blocks_rhs && !p.has_preceding_semicolons() {
         let Some(_) = atoms::parse_selector(p) else {
             m.abandon(p);
             return None;

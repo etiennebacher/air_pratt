@@ -42,5 +42,5 @@ RRoot {
 ## Errors
 
 ```
-Failed to parse due to syntax errors.
+expected an expression
 ```

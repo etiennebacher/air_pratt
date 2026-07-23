@@ -24,3 +24,13 @@ a@..1
 
 a$..10
 a@..10
+
+# `$` keeps looking for its selector across blank lines
+a$
+
+
+b
+a@
+
+
+b

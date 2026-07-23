@@ -2,6 +2,7 @@ use air_r_syntax::RRoot;
 use air_r_syntax::RSyntaxKind;
 use air_r_syntax::RSyntaxNode;
 use biome_parser::AnyParse;
+use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::event::Event;
 use biome_parser::prelude::Trivia;
 use biome_rowan::AstNode;
@@ -14,27 +15,31 @@ use crate::RParserOptions;
 
 /// A utility struct for managing the result of a parser job
 ///
-/// This struct holds a handle to the root node of the parsed syntax tree, along with a
-/// possible error emitted by the parser while generating this entry.
+/// This struct holds a handle to the root node of the parsed syntax tree, along
+/// with every diagnostic (each carrying a message and a [TextRange]) emitted by
+/// the parser while generating this entry.
+///
+/// [TextRange]: biome_rowan::TextRange
 ///
 /// It can be dynamically downcast into a concrete [RSyntaxNode] or [RRoot].
 ///
 /// It can be sent or shared between threads.
 ///
-/// This type is the same as [biome_parser::AnyParse], except it uses our [ParseError]
-/// error type rather than [biome_parser::ParseDiagnostic], since oddly that doesn't
-/// implement [std::error::Error] and we need that to compose with other errors.
+/// This type is the same as [biome_parser::AnyParse], except it also offers a
+/// [ParseError] view over the diagnostics, since [biome_parser::ParseDiagnostic]
+/// oddly does not implement [std::error::Error] and we need that to compose with
+/// other errors.
 #[derive(Clone, Debug)]
 pub struct Parse {
     root: SendNode,
-    error: Option<ParseError>,
+    diagnostics: Vec<ParseDiagnostic>,
 }
 
 impl Parse {
-    fn new(root: RSyntaxNode, error: Option<ParseError>) -> Parse {
+    fn new(root: RSyntaxNode, diagnostics: Vec<ParseDiagnostic>) -> Parse {
         // Safety: This method is not exposed, we only use it internally
         let root = root.as_send().unwrap();
-        Parse { root, error }
+        Parse { root, diagnostics }
     }
 
     /// The syntax node represented by this Parse result
@@ -50,73 +55,76 @@ impl Parse {
         RRoot::unwrap_cast(self.syntax())
     }
 
+    /// The diagnostics (message + range) the parser recorded, in the order they
+    /// were produced
+    pub fn diagnostics(&self) -> &[ParseDiagnostic] {
+        &self.diagnostics
+    }
+
     /// Convert this parse result into a [Result]
     pub fn into_result(self) -> Result<RSyntaxNode, ParseError> {
-        match self.error {
+        match self.error() {
             Some(err) => Err(err),
             None => Ok(self.syntax()),
         }
     }
 
-    /// Get the error which occurred when parsing
-    pub fn error(&self) -> Option<&ParseError> {
-        self.error.as_ref()
+    /// Get the first error which occurred when parsing
+    pub fn error(&self) -> Option<ParseError> {
+        self.diagnostics
+            .first()
+            .map(|diagnostic| ParseError::new(diagnostic.message.to_string()))
     }
 
-    /// Get the error which occurred when parsing
+    /// Get the first error which occurred when parsing
     pub fn into_error(self) -> Option<ParseError> {
-        self.error
+        self.error()
     }
 
     /// Returns [true] if the parser encountered some errors during the parsing.
     pub fn has_error(&self) -> bool {
-        self.error.is_some()
+        !self.diagnostics.is_empty()
     }
 }
 
 impl From<Parse> for AnyParse {
     fn from(parse: Parse) -> Self {
-        let root = parse.root;
-        let diagnostics = match parse.error {
-            Some(error) => vec![error.into()],
-            None => vec![],
-        };
-        Self::new(root, diagnostics)
+        Self::new(parse.root, parse.diagnostics)
     }
 }
 
 pub fn parse(text: &str, options: RParserOptions) -> Parse {
     let mut cache = NodeCache::default();
-    let (events, tokens, errors) = parse_text(text, options);
-    build_tree(text, events, tokens, errors, &mut cache)
+    let (events, tokens, diagnostics) = parse_text(text, options);
+    build_tree(text, events, tokens, diagnostics, &mut cache)
 }
 
 fn build_tree(
     text: &str,
     events: Vec<Event<RSyntaxKind>>,
     tokens: Vec<Trivia>,
-    errors: Option<ParseError>,
+    diagnostics: Vec<ParseDiagnostic>,
     cache: &mut NodeCache,
 ) -> Parse {
     tracing::debug_span!("parse").in_scope(move || {
-        // We've determined that passing diagnostics through does nothing.
-        // They go into the tree-sink but come right back out. We think they
-        // are a holdover from rust-analyzer that can be removed now. The real
-        // errors are in `errors`.
-        let _diagnostics = vec![];
+        // The tree sink has its own diagnostics channel (a holdover from
+        // rust-analyzer). We've determined it does nothing here: whatever goes
+        // in comes right back out. The real diagnostics travel alongside in
+        // `diagnostics`.
+        let sink_diagnostics = vec![];
 
         let mut tree_sink = RLosslessTreeSink::with_cache(text, &tokens, cache);
-        biome_parser::event::process(&mut tree_sink, events, _diagnostics);
-        let (green, _diagnostics) = tree_sink.finish();
+        biome_parser::event::process(&mut tree_sink, events, sink_diagnostics);
+        let (green, _sink_diagnostics) = tree_sink.finish();
 
-        Parse::new(green, errors)
+        Parse::new(green, diagnostics)
     })
 }
 
 fn parse_text(
     text: &str,
     _options: RParserOptions,
-) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Option<ParseError>) {
+) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Vec<ParseDiagnostic>) {
     crate::grammar::parse_text(text)
 }
 

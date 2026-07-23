@@ -149,7 +149,9 @@ fn test_number_boundaries() {
 
 #[test]
 fn test_identifiers() {
-    let cases = vec!["foo", ".foo", "_foo", "foo.bar", "foo_bar", "a1", ".x2", "T", "F", "r", "R"];
+    let cases = vec![
+        "foo", ".foo", "_foo", "foo.bar", "foo_bar", "a1", ".x2", "T", "F", "r", "R",
+    ];
     for text in cases {
         assert_eq!(lex(text), vec![(IDENT, text)], "lexing {text:?}");
     }
@@ -216,10 +218,7 @@ fn test_number_suffix_boundaries() {
     assert_eq!(lex("1Li"), vec![(R_DOUBLE_LITERAL, "1"), (IDENT, "Li")]);
     assert_eq!(lex("5L."), vec![(R_DOUBLE_LITERAL, "5"), (IDENT, "L.")]);
     assert_eq!(lex("1i2"), vec![(R_DOUBLE_LITERAL, "1"), (IDENT, "i2")]);
-    assert_eq!(
-        lex("1e5L2"),
-        vec![(R_DOUBLE_LITERAL, "1e5"), (IDENT, "L2")]
-    );
+    assert_eq!(lex("1e5L2"), vec![(R_DOUBLE_LITERAL, "1e5"), (IDENT, "L2")]);
 }
 
 #[test]
@@ -241,7 +240,10 @@ fn test_strings() {
         ]
     );
     // Empty string has no content token
-    assert_eq!(lex(r#""""#), vec![(STRING_OPEN, "\""), (STRING_CLOSE, "\"")]);
+    assert_eq!(
+        lex(r#""""#),
+        vec![(STRING_OPEN, "\""), (STRING_CLOSE, "\"")]
+    );
     // Escaped quote stays inside the content
     assert_eq!(
         lex(r#""a\"b""#),
