@@ -53,7 +53,11 @@ fn binary_binding_power(kind: RSyntaxKind) -> Option<(u8, u8)> {
         // `&` `&&` (rank 9, left)
         AND | AND2 => (18, 19),
         // comparisons (rank 11, left)
-        LESS_THAN | LESS_THAN_OR_EQUAL_TO | GREATER_THAN | GREATER_THAN_OR_EQUAL_TO | EQUAL2
+        LESS_THAN
+        | LESS_THAN_OR_EQUAL_TO
+        | GREATER_THAN
+        | GREATER_THAN_OR_EQUAL_TO
+        | EQUAL2
         | NOT_EQUAL => (22, 23),
         // `+` `-` (rank 12, left)
         PLUS | MINUS => (24, 25),
@@ -233,8 +237,7 @@ fn parse_namespace(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMar
     p.bump(p.cur());
 
     let separator_blocks_rhs = p.newlines_significant() && p.has_preceding_separator();
-    if atoms::at_selector_start(p.cur()) && !separator_blocks_rhs && !p.has_preceding_semicolons()
-    {
+    if atoms::at_selector_start(p.cur()) && !separator_blocks_rhs && !p.has_preceding_semicolons() {
         let Some(_) = atoms::parse_selector(p) else {
             m.abandon(p);
             return None;

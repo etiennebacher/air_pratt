@@ -175,7 +175,9 @@ impl<'src> RLexer<'src> {
                 self.token(RSyntaxKind::STRING_OPEN, start)
             }
             b'`' => self.lex_quoted_identifier(),
-            b'r' | b'R' if matches!(self.byte_at(1), Some(b'"' | b'\'')) => self.lex_raw_string_open(),
+            b'r' | b'R' if matches!(self.byte_at(1), Some(b'"' | b'\'')) => {
+                self.lex_raw_string_open()
+            }
             b'0'..=b'9' => self.lex_number(),
             b'.' if matches!(self.byte_at(1), Some(b'0'..=b'9')) => self.lex_number(),
             b'(' => self.lex_single(RSyntaxKind::L_PAREN),

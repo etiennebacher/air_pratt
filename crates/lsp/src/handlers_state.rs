@@ -31,7 +31,6 @@ use crate::documents::Document;
 use crate::logging;
 use crate::logging::LogMessageSender;
 use crate::main_loop::LspState;
-use aether_lsp_utils::proto::PositionEncoding;
 use crate::settings::DocumentSettings;
 use crate::settings::InitializationOptions;
 use crate::settings_vsc::VscDiagnosticsSettings;
@@ -41,6 +40,7 @@ use crate::settings_vsc::indent_style_from_vsc;
 use crate::settings_vsc::indent_width_from_usize;
 use crate::state::WorldState;
 use crate::workspaces::WorkspaceSettingsResolver;
+use aether_lsp_utils::proto::PositionEncoding;
 
 // Handlers that mutate the world state
 

@@ -7,8 +7,8 @@ use workspace::format::format_source_with_parse;
 
 use crate::file_patterns::is_document_excluded_from_formatting;
 use crate::main_loop::LspState;
-use aether_lsp_utils::proto::{from_proto, to_proto};
 use crate::state::WorldState;
+use aether_lsp_utils::proto::{from_proto, to_proto};
 
 #[tracing::instrument(level = "info", skip_all)]
 pub(crate) fn document_formatting(
@@ -286,10 +286,10 @@ fn find_expression_lists(node: &RSyntaxNode, offset: TextSize, end: bool) -> Vec
 #[cfg(test)]
 mod tests {
     use crate::documents::Document;
-    use aether_lsp_utils::proto::PositionEncoding;
     use crate::test::FileName;
     use crate::test::TestClientExt;
     use crate::test::new_test_client;
+    use aether_lsp_utils::proto::PositionEncoding;
     use std::path::Path;
     use tower_lsp::lsp_types::DidChangeWorkspaceFoldersParams;
     use tower_lsp::lsp_types::WorkspaceFolder;

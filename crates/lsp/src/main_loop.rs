@@ -26,7 +26,6 @@ use crate::handlers_state::ConsoleInputs;
 use crate::logging;
 use crate::logging::LogMessageSender;
 use crate::logging::LogThreadState;
-use aether_lsp_utils::proto::PositionEncoding;
 use crate::settings::GlobalSettings;
 use crate::state::WorldState;
 use crate::tower_lsp::LspMessage;
@@ -35,6 +34,7 @@ use crate::tower_lsp::LspRequest;
 use crate::tower_lsp::LspResponse;
 use crate::workspaces::WorkspaceSettings;
 use crate::workspaces::WorkspaceSettingsResolver;
+use aether_lsp_utils::proto::PositionEncoding;
 
 pub(crate) type TokioUnboundedSender<T> = tokio::sync::mpsc::UnboundedSender<T>;
 pub(crate) type TokioUnboundedReceiver<T> = tokio::sync::mpsc::UnboundedReceiver<T>;
