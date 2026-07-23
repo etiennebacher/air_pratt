@@ -57,5 +57,5 @@ RRoot {
 ## Errors
 
 ```
-expected an identifier or string before `::`
+expected an identifier or string before `:::`
 ```
