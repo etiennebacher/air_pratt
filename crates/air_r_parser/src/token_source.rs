@@ -10,10 +10,11 @@
 //! sees them as tokens and folds them into `Whitespace` trivia pieces (see the
 //! `TODO(semicolon)` on `derive_trivia`). We reproduce that: `;` is skipped
 //! into the surrounding whitespace piece. To still *reject* semicolons in
-//! places where tree-sitter errors (e.g. `f(a;)`), every skipped semicolon is
-//! counted, and the grammar's statement-list loops "bless" the ones that sit
-//! at legal statement boundaries. Any unblessed semicolon at the end of the
-//! parse fails the whole file, which is exactly the parity failure mode.
+//! places where tree-sitter errors (e.g. `f(a;)`), each skipped semicolon is
+//! remembered, and the grammar's statement-list loops "bless" the ones that sit
+//! at legal statement boundaries. Any semicolon left unblessed once we leave its
+//! gap becomes a stray-semicolon diagnostic, which is exactly the parity failure
+//! mode.
 
 use air_r_syntax::RSyntaxKind;
 use biome_parser::diagnostic::ParseDiagnostic;
@@ -41,10 +42,13 @@ pub(crate) struct RTokenSource<'src> {
     gap_newlines: u32,
     /// Number of semicolons in the gap before `current`
     gap_semicolons: u32,
-    /// Semicolons skipped over the whole file vs. those the grammar accepted
-    /// as statement separators
-    total_semicolons: u32,
-    blessed_semicolons: u32,
+    /// Range of the first semicolon in the current gap that hasn't been blessed
+    /// as a statement separator yet. Cleared when the gap is blessed, promoted
+    /// to `stray_semicolon` when we leave the gap without blessing it.
+    pending_semicolon: Option<TextRange>,
+    /// Range of the first stray semicolon: one that sat somewhere other than a
+    /// statement boundary (e.g. `f(a;)`), which tree-sitter rejects
+    stray_semicolon: Option<TextRange>,
 }
 
 /// Converts the raw text between non-trivia tokens into trivia pieces
@@ -200,8 +204,8 @@ impl<'src> RTokenSource<'src> {
             trivia: TriviaState::new(),
             gap_newlines: 0,
             gap_semicolons: 0,
-            total_semicolons: 0,
-            blessed_semicolons: 0,
+            pending_semicolon: None,
+            stray_semicolon: None,
         };
         source.advance();
         source
@@ -224,8 +228,13 @@ impl<'src> RTokenSource<'src> {
     /// Advance `current` to the next non-trivia token, converting the trivia
     /// in between
     fn advance(&mut self) {
+        // We're leaving the current gap for good: no later `bless_semicolons`
+        // can reach it, so a semicolon still pending here was never a statement
+        // separator and is therefore stray.
+        self.finalize_pending_semicolon();
         self.gap_newlines = 0;
         self.gap_semicolons = 0;
+        self.pending_semicolon = None;
 
         loop {
             match self.next_lexer_token() {
@@ -245,7 +254,9 @@ impl<'src> RTokenSource<'src> {
                     }
                     RSyntaxKind::SEMICOLON => {
                         self.gap_semicolons += 1;
-                        self.total_semicolons += 1;
+                        if self.pending_semicolon.is_none() {
+                            self.pending_semicolon = Some(token.range());
+                        }
                     }
                     RSyntaxKind::COMMENT => self.trivia.handle_comment(self.text, token.range()),
                     _ => {
@@ -277,18 +288,16 @@ impl<'src> RTokenSource<'src> {
     /// Accept the semicolons in the gap before the current token as legal
     /// statement separators
     pub(crate) fn bless_semicolons(&mut self) {
-        self.blessed_semicolons += self.gap_semicolons;
         self.gap_semicolons = 0;
+        self.pending_semicolon = None;
     }
 
-    /// A semicolon appeared somewhere that is not a statement boundary
-    /// (e.g. `f(a;)`), which tree-sitter rejects
-    pub(crate) fn has_stray_semicolons(&self) -> bool {
-        self.total_semicolons != self.blessed_semicolons
-    }
-
-    pub(crate) fn lexer_error(&self) -> Option<&str> {
-        self.lexer.error()
+    /// Record the current gap's still-pending semicolon as the first stray one,
+    /// if we don't already have one
+    fn finalize_pending_semicolon(&mut self) {
+        if self.stray_semicolon.is_none() {
+            self.stray_semicolon = self.pending_semicolon;
+        }
     }
 
     /// If the current token is `]` and it is *immediately* followed by
@@ -346,7 +355,17 @@ impl TokenSource for RTokenSource<'_> {
         unreachable!("The parity parser never skips tokens as trivia");
     }
 
-    fn finish(self) -> (Vec<Trivia>, Vec<ParseDiagnostic>) {
-        (self.trivia.pieces, Vec::new())
+    fn finish(mut self) -> (Vec<Trivia>, Vec<ParseDiagnostic>) {
+        // The final gap is never followed by an `advance`, so finalize it here.
+        self.finalize_pending_semicolon();
+
+        let mut diagnostics = Vec::new();
+        if let Some((message, range)) = self.lexer.error() {
+            diagnostics.push(ParseDiagnostic::new(message.clone(), *range));
+        }
+        if let Some(range) = self.stray_semicolon {
+            diagnostics.push(ParseDiagnostic::new("Unexpected `;`.", range));
+        }
+        (self.trivia.pieces, diagnostics)
     }
 }

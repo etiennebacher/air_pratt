@@ -68,9 +68,9 @@ pub(crate) struct RLexer<'src> {
     text: &'src str,
     pos: usize,
     mode: Mode,
-    /// First lexing error, if any. In the parity phase any error collapses the
-    /// parse into a whole-file bogus node, so we only need to know one occurred.
-    error: Option<String>,
+    /// First lexing error, if any, paired with the range of the offending
+    /// token so callers can report a location (see `token_source.rs`).
+    error: Option<(String, TextRange)>,
 }
 
 impl<'src> RLexer<'src> {
@@ -83,14 +83,22 @@ impl<'src> RLexer<'src> {
         }
     }
 
-    pub(crate) fn error(&self) -> Option<&str> {
-        self.error.as_deref()
+    pub(crate) fn error(&self) -> Option<&(String, TextRange)> {
+        self.error.as_ref()
     }
 
-    fn push_error(&mut self, message: impl Into<String>) {
+    fn push_error(&mut self, message: impl Into<String>, range: TextRange) {
         if self.error.is_none() {
-            self.error = Some(message.into());
+            self.error = Some((message.into(), range));
         }
+    }
+
+    /// The range of the token currently being lexed, `text[start..pos]`
+    fn span(&self, start: usize) -> TextRange {
+        TextRange::new(
+            TextSize::try_from(start).unwrap(),
+            TextSize::try_from(self.pos).unwrap(),
+        )
     }
 
     fn bytes(&self) -> &'src [u8] {
@@ -261,7 +269,7 @@ impl<'src> RLexer<'src> {
                     self.lex_identifier_like()
                 } else {
                     self.pos += char.len_utf8();
-                    self.push_error(format!("Unexpected character `{char}`."));
+                    self.push_error(format!("Unexpected character `{char}`."), self.span(start));
                     self.token(RSyntaxKind::R_BOGUS, start)
                 }
             }
@@ -293,7 +301,7 @@ impl<'src> RLexer<'src> {
                     return self.token(RSyntaxKind::SPECIAL, start);
                 }
                 None | Some(b'\n' | b'\r' | b'\\') => {
-                    self.push_error("Unterminated special operator.");
+                    self.push_error("Unterminated special operator.", self.span(start));
                     return self.token(RSyntaxKind::R_BOGUS, start);
                 }
                 Some(byte) => {
@@ -324,7 +332,7 @@ impl<'src> RLexer<'src> {
                         Some(byte) if byte.is_ascii() => self.pos += 1,
                         Some(_) => self.pos += self.current_char().len_utf8(),
                         None => {
-                            self.push_error("Unterminated quoted identifier.");
+                            self.push_error("Unterminated quoted identifier.", self.span(start));
                             return self.token(RSyntaxKind::R_BOGUS, start);
                         }
                     }
@@ -337,7 +345,7 @@ impl<'src> RLexer<'src> {
                     };
                 }
                 None => {
-                    self.push_error("Unterminated quoted identifier.");
+                    self.push_error("Unterminated quoted identifier.", self.span(start));
                     return self.token(RSyntaxKind::R_BOGUS, start);
                 }
             }
@@ -412,7 +420,7 @@ impl<'src> RLexer<'src> {
             }
         }
 
-        self.push_error("Unterminated string.");
+        self.push_error("Unterminated string.", self.span(start));
         self.mode = Mode::Normal;
         self.token(RSyntaxKind::R_BOGUS, start)
     }
@@ -438,7 +446,7 @@ impl<'src> RLexer<'src> {
             };
         }
 
-        self.push_error("Unterminated raw string.");
+        self.push_error("Unterminated raw string.", self.span(start));
         self.mode = Mode::Normal;
         self.token(RSyntaxKind::R_BOGUS, start)
     }

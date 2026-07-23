@@ -60,5 +60,5 @@ RRoot {
 ## Errors
 
 ```
-Failed to parse due to syntax errors.
+expected `)` but instead found `b`
 ```

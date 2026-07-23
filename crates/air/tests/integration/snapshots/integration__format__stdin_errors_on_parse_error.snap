@@ -7,7 +7,7 @@ exit_code: 255
 ----- stdout -----
 
 ----- stderr -----
-ERROR Failed to format stdin: Failed to parse due to syntax errors.
+ERROR Failed to format stdin: expected an expression
 
 ----- args -----
 <removed>

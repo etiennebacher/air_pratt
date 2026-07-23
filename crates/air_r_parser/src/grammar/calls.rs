@@ -19,6 +19,7 @@ use biome_parser::Parser;
 use biome_parser::prelude::CompletedMarker;
 
 use crate::grammar::atoms;
+use crate::grammar::error_here;
 use crate::grammar::expected;
 use crate::grammar::expressions::parse_expression;
 use crate::grammar::expressions::parse_expression_rest;
@@ -107,7 +108,7 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) -> bool {
 
         if previous == Previous::Argument {
             // Two arguments must be separated by a comma: `fn(a b)` is an error
-            expected(p, "`,` or the end of the arguments");
+            error_here(p, "missing comma between arguments");
             return false;
         }
 
