@@ -1,3 +1,11 @@
+---
+
+This project is archived because outdated.
+
+Use [aether](https://github.com/davisVaughan/aether) for a proper (and maintained) Pratt parser for R.
+
+---
+
 This is a fork of [Air](github.com/posit-dev/air), an R formatter.
 
 The objective of this fork is to replace the tree-sitter parsing infrastructure by a dedicated Pratt parser. This would have two benefits:
